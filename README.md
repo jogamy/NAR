@@ -1,11 +1,11 @@
 # Requirements
 
--ordered-set==4.1.0
--pytorch-lightning==1.8.6
--torch==1.13.0
--torchmetrics==0.11.0
--torchtext==0.14.0
--torchvision==0.14.0
+- ordered-set==4.1.0
+- pytorch-lightning==1.8.6
+- torch==1.13.0
+- torchmetrics==0.11.0
+- torchtext==0.14.0
+- torchvision==0.14.0
 
     pip install -r requirements.txt
     
