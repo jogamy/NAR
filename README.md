@@ -7,7 +7,7 @@
 - torchtext==0.14.0
 - torchvision==0.14.0
 
-    pip install -r requirements.txt
+  pip install -r requirements.txt
     
 -------------------------------------
 # Structure
@@ -48,9 +48,11 @@ NAR
 ```
 
 examples: tasks
+
 x_transformers: model tamplates
 
 x_transforemrs: https://github.com/lucidrains/x-transformers
+
 -------------------------------------
 # Demo for x-transformer
 
@@ -65,10 +67,15 @@ python enc_dec_copy.py
 # Training
 
 argment details
+
     --train_mode    model/constrainer/model and constrainer
+
     --task          KMA/SLU/NER
+
     --dataset       sejong/MixATIS/CONLL2003
+
     --train_logic   random/uniform/eojeol
+    
     --lp_structure  len_token/eojeol
 
 examples for Korean morphological anaylsis
