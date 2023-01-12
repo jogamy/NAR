@@ -45,33 +45,37 @@ if __name__ == '__main__':
         
     module = Module.load_from_checkpoint(args.model_path, args=args, **kwargs)
 
-    model = module.model
-    model = model.cuda()
-    model.eval()
+    module.model = module.model.cuda()
+    module.model.eval()
 
     if args.train_mode != "model":
-        constrainer = module.constrainer
-        constrainer = constrainer.cuda()
-        constrainer.eval()
+        module.constrainer = module.constrainer.cuda()
+        module.constrainer.eval()
 
-        print(constrainer.constrainer.max())
+        print(f"max  : {module.constrainer.constrainer.max()}")
+        print(f"min  : {module.constrainer.constrainer.min()}")
+        print(f"mean : {module.constrainer.constrainer.mean()}")
 
-    example_sent = "내가 졸업을 할 수 있을까?"
+    kwargs = {
+        'mask_id' : dec1_tok.mask(),
+        'dec1_space_id' : dec1_tok.index(" "),
+        'dec2_space_id' : dec2_tok.index("O+"),
+    }
+
+    example_sent = "나는 하늘을 나는 새를 봤다."
     input_ids = enc_tok.encode(example_sent)
     input_ids = torch.tensor(input_ids).cuda()
     num_dims = len(input_ids.shape)
     if num_dims == 1:
             input_ids = input_ids[None, :]
 
-    kwargs = {
-        'dec1_space_id' : dec1_tok.index(" "),
-        'dec2_space_id' : dec2_tok.index("O+"),
-    }
+    output1, output2 = module.generate(input_ids, **kwargs)
 
-    output = model.generate(input_ids, **kwargs)
-
-    print(output)
-
+    print(output1['sequence'])
+    print(output1['scores'])
+    print(output1['sequence'].shape)
+    print(output1['scores'].shape)
+    
     assert 1==0
 
 

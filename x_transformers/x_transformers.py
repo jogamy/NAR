@@ -1527,15 +1527,15 @@ class DualDecoderNATransformer(nn.Module):
         dec2_kwargs, kwargs = groupby_prefix_and_trim('dec2_', kwargs)
 
         encodings = self.encoder(seq_in, mask = mask, attn_mask = attn_mask, return_embeddings = True)        
-        # start_tokens = self.length_predictor.generate(encodings, **kwargs)
-        '''
-        start_tokens로 어쩌구~~저쩌구~~해서 
-        dec1_ids
-        dec2_ids
-        '''
-        dec1_ids=None
-        dec2_ids=None
-        
+
+        if 'len_labels' not in kwargs:
+            start_tokens = self.length_predictor.generate(encodings, **kwargs)
+            dec1_ids = torch.where(start_tokens['dec_ids']==1, kwargs['mask_id'], dec1_kwargs.pop('space_id', None))
+            dec2_ids = torch.where(start_tokens['dec_ids']==1, kwargs['mask_id'], dec2_kwargs.pop('space_id', None))
+        else :
+            dec1_ids = None
+            dec2_ids = None
+         
         return self.decoder1.generate(dec1_ids, context = encodings, context_mask = mask, **dec1_kwargs),\
             self.decoder2.generate(dec2_ids, context = encodings, context_mask = mask, **dec2_kwargs)
 

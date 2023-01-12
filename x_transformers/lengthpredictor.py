@@ -21,64 +21,92 @@ class LengthPredictor(nn.Module):
     
         if self.structure == None:
             self.length_predictor = None
-        # if self.structure == "eojeol":
-        #     self.dec1_space_id = kwargs['dec1_space_id']
-        #     self.dec2_space_id = kwargs['dec2_space_id']
-
+        
         self.length_predictor=nn.Linear(dim, self.max_length+1)
 
     @torch.no_grad()
     def generate(self, enc_output, beam_size=1, **kwargs):
 
-        # b, l, e = enc_output.shape  # ERASE
-
         if self.structure == "len_token":
             logit = enc_output[:,0,:]
-            # l -= 1
         else:
             logit = enc_output
         
         length_logit = self.length_predictor(logit)
         length_probs = F.softmax(length_logit, dim=-1)
 
-        print(kwargs)
-
-        assert 1==0
-
-        if self.lp_structure == "len_token":
+        if self.structure == "len_token":
             # TODO beam!
             pass
-        elif self.lp_structure == "eojeol":
+        elif self.structure == "eojeol":
             length_max_probs, length_candidates = length_probs.max(dim=-1)
             
+            b, l = length_candidates.shape
+
+            # dec_ids = []
+
+            # for i in range(b):
+                
+            #     space_ids = (length_candidates[i]==0).nonzero()
+            #     space_ids = space_ids.squeeze(1)
+                
+            #     roll = torch.roll(space_ids, 1)
+            #     roll[0] = 0
+
+            #     space_ids = space_ids - roll
+            #     space_ids -= 1
+            #     space_ids[0] += 1
+            
+            #     join_ids = length_candidates[i][length_candidates[i]!=0]
+
+            #     space_ids = torch.cat((
+            #         space_ids,
+            #         (join_ids.shape[0] - space_ids.sum()).unsqueeze(0)
+            #     ))
+
+            #     chunks = torch.split(join_ids, space_ids.tolist())
+
+            #     print(chunks)
+            #     assert 1==0
+
+            #     dec_id = []
+            #     [dec_id.extend([1] * max(chunk) + [0]) for chunk in chunks]
+            #     dec_id = dec_id[:-1]
+            #     dec_id.extend([-100] * (l - len(dec_id)))                
+
+                
+            #     print(dec_id)
+
+            #     assert 1==0
+
+            # assert 1==0
+
+            # only in one batch
+            length_candidates = length_candidates.squeeze(0)
+            
+            dec_ids = []
+
             length_buffer = []
-            dec1_inputs = []
-            dec2_inputs = []
             for length in length_candidates:
                 if length == 0:
                     choosen_length = max(length_buffer)
-                    dec1_inputs.extend([self.mask_index] * choosen_length)
-                    dec2_inputs.extend([self.mask_index] * choosen_length)
-
-                    dec1_inputs.extend([kwargs['dec1_space_id']])
-                    dec2_inputs.extend([kwargs['dec2_space_id']])
+                    dec_ids.extend([1] * choosen_length)
+                    dec_ids.extend([0])
+                    
                     length_buffer = [] 
                 else : 
                     length_buffer.append(length)                   
 
             choosen_length = max(length_buffer)
-            dec1_inputs.extend([self.mask_index] * choosen_length)
-            dec2_inputs.extend([self.mask_index] * choosen_length)        
-
-            dec1_inputs = torch.tensor(dec1_inputs).long().cuda(device=enc_output.device)
-            dec2_inputs = torch.tensor(dec2_inputs).long().cuda(device=enc_output.device)
+            dec_ids.extend([1] * choosen_length)
+            
+            dec_ids = torch.tensor(dec_ids).long().cuda(device=enc_output.device)
 
             return {
-                'dec1_inputs' : dec1_inputs,
-                'dec2_inputs' : dec2_inputs,
+                'dec_ids' : dec_ids
             }
 
-        assert 1 == 0
+        assert False
         
     def forward(self, length_labels, enc_output):
         

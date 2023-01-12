@@ -1,11 +1,12 @@
 # Requirements
 
-- ordered-set==4.1.0
-- pytorch-lightning==1.8.6
-- torch==1.13.0
-- torchmetrics==0.11.0
-- torchtext==0.14.0
-- torchvision==0.14.0
+  - ordered-set==4.1.0
+  - pytorch-lightning==1.8.6
+  - torch==1.13.0
+  - torchmetrics==0.11.0
+  - torchtext==0.14.0
+  - torchvision==0.14.0
+  - einops==0.6.0
 
   pip install -r requirements.txt
     
@@ -69,13 +70,9 @@ python enc_dec_copy.py
 argment details
 
     --train_mode    model/constrainer/model and constrainer
-
-    --task          KMA/SLU/NER
-
+    --task          KMA/SLU/NERs
     --dataset       sejong/MixATIS/CONLL2003
-
     --train_logic   random/uniform/eojeol
-    
     --lp_structure  len_token/eojeol
 
 examples for Korean morphological anaylsis
