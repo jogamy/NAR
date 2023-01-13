@@ -95,7 +95,7 @@ CUDA_VISIBLE_DEVICES=0,1 python train.py \
 ```
 
 ## NER
-'''
+```
 cd NAR
 CUDA_VISIBLE_DEVICES=1 python train.py \
   --train_mode model \
@@ -109,7 +109,7 @@ CUDA_VISIBLE_DEVICES=1 python train.py \
   --dropout 0.3 \
   --plm_path bert-base-uncased \
   --default_root_dir v4
-'''
+```
 
 ----------------------------------
 # Inference(WIP)
