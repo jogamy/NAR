@@ -10,6 +10,7 @@ from examples.mytokenizer import MyTokenizer
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--hparams", default=None, type=str)
@@ -57,7 +58,7 @@ if __name__ == '__main__':
         print(f"mean : {module.constrainer.constrainer.mean()}")
 
     kwargs = {
-        'mask_id' : dec1_tok.mask(),
+        'mask_id' : dec1_tok.mask_token_id,
         'dec1_space_id' : dec1_tok.index(" "),
         'dec2_space_id' : dec2_tok.index("O+"),
     }
@@ -71,10 +72,12 @@ if __name__ == '__main__':
 
     output1, output2 = module.generate(input_ids, **kwargs)
 
-    print(dec1_tok.decode(output1['sequence'].tolist()[0]))
+    # print(output1['sequence'].tolist())
+    # assert 1==0
+
+    print(dec1_tok.decode(output1['sequence'].tolist()))
 
     ## merge
-
     
     
     

@@ -28,35 +28,25 @@ class SejongCollator:
             if self.lp_structure == "len_token":
                 feature['enc_ids'].insert(0, self.enc_tok.index("<len>"))
                 feature['enc_ids'] = feature['enc_ids'][:-1]
-                feature['len_labels'] = len(feature['dec1_labels'])
+                feature['lp_tgt'] = len(feature['dec1_labels'])
             elif self.lp_structure == "eojeol":
-                # feature['len_labels'], feature['dec_input'] = self.eojeol_labeling(feature['dec1_labels'], feature['enc_ids'])
-                feature['len_labels'], dec_input = self.eojeol_labeling(feature['dec1_labels'], feature['enc_ids'])
-                feature['dec1_ids'] = self.eojeol_input(dec_input, self.dec1_tok.mask_token_id, self.dec1_tok.index(" "))
-                feature['dec2_ids'] = self.eojeol_input(dec_input, self.dec2_tok.mask_token_id, self.dec2_tok.index("O+"))
-
-                feature['dec1_ids'] = self.padding(feature['dec1_ids']) 
-                feature['dec2_ids'] = self.padding(feature['dec2_ids']) 
-                feature['len_labels'] = self.labeling(feature['len_labels'])
+                feature['lp_tgt'], dec_input = self.eojeol_labeling(feature['dec1_tgt'], feature['enc_ids'])
+                feature['lp_tgt'] = self.labeling(feature['lp_tgt'])
                 
-            feature['attention_mask'] = self.attention_mask(feature['enc_ids'])
+            feature['mask'] = self.attention_mask(feature['enc_ids'])
             feature['enc_ids'] = self.padding(feature['enc_ids'])
 
-            feature['dec1_labels'] = self.labeling(feature['dec1_labels'])
-            feature['dec2_labels'] = self.labeling(feature['dec2_labels'])
-            
-        
+            feature['dec1_tgt'] = self.labeling(feature['dec1_tgt'])
+            feature['dec2_tgt'] = self.labeling(feature['dec2_tgt'])
+                    
         batch = {
             "src": torch.LongTensor(np.stack([ feature['enc_ids'] for feature in features])),
-            "tgt1": torch.LongTensor(np.stack([feature['dec1_labels'] for feature in features])),
-            "tgt2": torch.LongTensor(np.stack([feature['dec2_labels'] for feature in features])),
-            "mask": torch.BoolTensor(np.stack([feature['attention_mask'] for feature in features])),
-            "len_labels": torch.LongTensor(np.stack([feature['len_labels'] for feature in features])),
+            "dec1_tgt": torch.LongTensor(np.stack([feature['dec1_tgt'] for feature in features])),
+            "dec2_tgt": torch.LongTensor(np.stack([feature['dec2_tgt'] for feature in features])),
+            "mask": torch.BoolTensor(np.stack([feature['mask'] for feature in features])),
+            "lp_tgt": torch.LongTensor(np.stack([feature['lp_tgt'] for feature in features])),
         }
-        if self.lp_structure == "eojeol":
-            batch["dec1_ids"] = torch.LongTensor(np.stack([feature['dec1_ids'] for feature in features]))
-            batch["dec2_ids"] = torch.LongTensor(np.stack([feature['dec1_ids'] for feature in features]))
-            
+        
         return batch
 
     def eojeol_input(self, ids, mask_id, space_id):
@@ -133,17 +123,19 @@ class SejongDataset(Dataset):
     def __getitem__(self, index):
 
         enc_ids = self.enc_tok.encode(self.srcs[index])
+        if self.enc_tok.unk_token_id in enc_ids:
+            print(self.srcs[index])
         
-        dec1_labels = self.dec1_tok.encode(self.morphemes[index])
-        dec2_labels = self.dec2_tok.encode(self.tags[index])
+        dec1_tgt = self.dec1_tok.encode(self.morphemes[index])
+        dec2_tgt = self.dec2_tok.encode(self.tags[index])
         
         assert len(self.morphemes[index])==len(self.tags[index]), f"{self.morphemes[index]}\n{self.tags[index]}"
         assert len(self.morphemes[index])<=self.max_len, f"{len(self.morphemes[index])}"
 
         
         return {'enc_ids': np.array(enc_ids, dtype=np.int_),
-                'dec1_labels': np.array(dec1_labels, dtype=np.int_),
-                'dec2_labels': np.array(dec2_labels, dtype=np.int_),
+                'dec1_tgt': np.array(dec1_tgt, dtype=np.int_),
+                'dec2_tgt': np.array(dec2_tgt, dtype=np.int_),
                 }
         
     def load_data(self):

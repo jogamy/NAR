@@ -36,7 +36,9 @@ class MyTokenizer:
         assert isinstance(sym, str)
         if sym in self.indices:
             return self.indices[sym]
-        return self.unk_index
+        print(f"{sym}{sym}{sym}{sym}{sym} -> unk")
+
+        return self.unk_token_id
 
     def word(self, id):
         if id < len(self.symbols):

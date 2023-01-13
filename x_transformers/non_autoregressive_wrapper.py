@@ -7,15 +7,24 @@ def exists(val):
 
 # non-autoregressive training logic
 
-def uniform_training(t):
+def eojeol_mask(x, space_id, mask_id, pad_id):
+    inp = torch.where( (x==space_id) | (x==-100), x, mask_id).long().to(x.device)
+    inp = torch.where(inp==-100, pad_id, inp)
+    return inp
+
+def uniform_mask(t):
     # work in progress
     num_to_mask = None
     inp = None
     return inp
 
-def random_training(t, mask_index):
+def random_mask(t, mask_index):
     to_mask = torch.randint(0,2, t.size())
     inp = torch.where(to_mask==0, mask_index, t)
+    return inp
+
+def full_mask(x, mask_id, pad_id):
+    inp = torch.where(x==-100, pad_id, mask_id).long().to(x.device)
     return inp
 
 # Non-autoregressive wrapper class
@@ -36,8 +45,9 @@ class NonAutoregressiveWrapper(nn.Module):
 
         self.net = net
         self.max_seq_len = net.max_seq_len
-        if 'train_logic' in kwargs:
-            self.train_logic = kwargs.pop('train_logic', None)
+        self.train_logic = kwargs.pop('train_logic', None)
+        if self.train_logic == "eojeol":
+            self.space_id = kwargs.pop('space_id', None)
         
         # paper shows masking (MLM) in conjunction with autoregressive decoder-only training leads to big improvements https://arxiv.org/abs/2210.13432
         assert mask_prob < 1.
@@ -50,8 +60,17 @@ class NonAutoregressiveWrapper(nn.Module):
         iteration=1,
         **kwargs
     ):
-        if 'ids' in kwargs:
-            start_tokens = kwargs.pop('ids', None)
+        if 'tgt' in kwargs:
+            x = kwargs.pop('tgt', None)
+            if self.train_logic == "random":
+                start_tokens = random_mask(x)
+            elif self.train_logic == "uniform":
+                pass
+            elif self.train_logic == "eojeol":
+                start_tokens = eojeol_mask(x, self.space_id, self.mask_index, self.pad_value)
+            else:
+                start_tokens = full_mask(x, self.mask_index, self.pad_value)
+
         device = start_tokens.device
 
         was_training = self.net.training 
@@ -87,19 +106,18 @@ class NonAutoregressiveWrapper(nn.Module):
         return out
 
     def forward(self, x, **kwargs):
-    
+        
         seq, ignore_index = x.shape[1], self.ignore_index
 
-        if 'ids' in kwargs:
-            inp = kwargs.pop('ids', None)
+        if self.train_logic == "random":
+            inp = random_mask(x)
+        elif self.train_logic == "uniform":
+            pass
+        elif self.train_logic == "eojeol":
+            inp = eojeol_mask(x, self.space_id, self.mask_index, self.pad_value)
         else:
-            if self.train_logic == "random":
-                inp = random_training(x)
-            elif self.train_logic == "uniform":
-                pass
-            else:
-                inp = torch.full_like(x, self.mask_index).long().to(x.device)
-            
+            inp = full_mask(x, self.mask_index, self.pad_value)
+        
         target = x[:,:]
 
         out = self.net(inp, **kwargs)    

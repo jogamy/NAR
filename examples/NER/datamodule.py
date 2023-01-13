@@ -41,15 +41,15 @@ class CONLL2003Collator():
         for feature in features:
             feature['attention_mask'] = self.attention_mask(feature['enc_ids'])
             feature['enc_ids'] = self.padding(feature['enc_ids'])
-            feature['dec1_labels'] = self.labeling(feature['dec1_labels'])
-            feature['dec2_labels'] = self.labeling(feature['dec2_labels'])
-
+            feature['dec1_tgt'] = self.labeling(feature['dec1_tgt'])
+            feature['dec2_tgt'] = self.labeling(feature['dec2_tgt'])
+        
         batch = {
             "src": torch.LongTensor(np.stack([feature['enc_ids'] for feature in features])),
-            "tgt1": torch.LongTensor(np.stack([feature['dec1_labels'] for feature in features])),
-            "tgt2": torch.LongTensor(np.stack([feature['dec2_labels'] for feature in features])),
-            "mask": torch.BoolTensor(np.stack([feature['attention_mask'] for feature in features]))
-            # "len_labels": torch.LongTensor(np.stack([feature['len_labels'] for feature in features])),
+            "mask": torch.BoolTensor(np.stack([feature['attention_mask'] for feature in features])),
+            "dec1_tgt": torch.LongTensor(np.stack([feature['dec1_tgt'] for feature in features])),
+            "dec2_tgt": torch.LongTensor(np.stack([feature['dec2_tgt'] for feature in features])),
+            # "enc_len": torch.LongTensor(np.stack([feature['enc_len'] for feature in features])),
         }
         
         return batch
@@ -95,16 +95,18 @@ class CONLL2003Dataset(Dataset):
     def __getitem__(self, index):
 
         enc_ids = self.enc_tok.encode(self.srcs[index])
+        # enc_len = len(self.srcs[index].split(" "))
 
-        dec1_labels = self.dec1_tok.encode(self.tags[index])
-        dec2_labels = self.dec2_tok.encode(self.ners[index])
+        dec1_tgt = self.dec1_tok.encode(self.tags[index])
+        dec2_tgt = self.dec2_tok.encode(self.ners[index])
         
         assert len(self.tags[index]) == len(self.ners[index]), f"{len(self.tags[index])}\n{len(self.ners[index])}"
-        assert len(self.tags[index]) <= self.max_len, f"{len(self.morphemes[index])}"
+        assert len(self.tags[index]) <= self.max_len, f"{len(self.tags[index])}"
         
         return {'enc_ids': np.array(enc_ids, dtype=np.int_),
-                'dec1_labels': np.array(dec1_labels, dtype=np.int_),
-                'dec2_labels': np.array(dec2_labels, dtype=np.int_),
+                'dec1_tgt': np.array(dec1_tgt, dtype=np.int_),
+                'dec2_tgt': np.array(dec2_tgt, dtype=np.int_),
+                # 'enc_len' : np.array(enc_len, dtype=np.int_),
                 }
         
     def load_data(self, path):

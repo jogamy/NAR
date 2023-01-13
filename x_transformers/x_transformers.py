@@ -1520,8 +1520,8 @@ class DualDecoderNATransformer(nn.Module):
             self.decoder1.token_emb = self.encoder.token_emb
             self.decoder2.token_emb = self.encoder.token_emb
 
-        self.decoder1 = NonAutoregressiveWrapper(self.decoder1, mask_index, ignore_index=ignore_index, pad_value=pad_value, **kwargs)
-        self.decoder2 = NonAutoregressiveWrapper(self.decoder2, mask_index, ignore_index=ignore_index, pad_value=pad_value, **kwargs)
+        self.decoder1 = NonAutoregressiveWrapper(self.decoder1, mask_index, ignore_index=ignore_index, pad_value=pad_value, **kwargs, **dec1_kwargs)
+        self.decoder2 = NonAutoregressiveWrapper(self.decoder2, mask_index, ignore_index=ignore_index, pad_value=pad_value, **kwargs, **dec2_kwargs)
 
         self.mask_index = mask_index
 
@@ -1530,40 +1530,59 @@ class DualDecoderNATransformer(nn.Module):
         dec1_kwargs, kwargs = groupby_prefix_and_trim('dec1_', kwargs)
         dec2_kwargs, kwargs = groupby_prefix_and_trim('dec2_', kwargs)
 
-        encodings = self.encoder(seq_in, mask = mask, attn_mask = attn_mask, return_embeddings = True)        
+        if 'plm' in kwargs:
+            encodings = self.encoder(seq_in, mask)['last_hidden_state']  
+        else:       
+            encodings = self.encoder(seq_in, mask = mask, attn_mask = attn_mask, return_embeddings = True)        
+        
+        if 'tgt' in dec1_kwargs:
+            return self.decoder1.generate(None, context = encodings, context_mask = mask, **dec1_kwargs),\
+            self.decoder2.generate(None, context = encodings, context_mask = mask, **dec2_kwargs)
 
-        if 'len_labels' not in kwargs:
-            start_tokens = self.length_predictor.generate(encodings, **kwargs)
-            dec1_ids = torch.where(start_tokens['dec_ids']==1, kwargs['mask_id'], dec1_kwargs.pop('space_id', None))
-            dec2_ids = torch.where(start_tokens['dec_ids']==1, kwargs['mask_id'], dec2_kwargs.pop('space_id', None))
-        else :
-            dec1_ids = None
-            dec2_ids = None
-         
+        if self.length_predictor is None:
+            assert 'enc_len' in kwargs, f"{kwargs}"
+            print(kwargs.keys())
+            print(kwargs['enc_len'])
+            
+            for enc_len in kwargs['enc_len']:
+                [self.mask_index] * enc_len
+            print()
+            assert 1==0
+            self.mask_index
+        else:
+            if 'len_labels' not in kwargs:
+                start_tokens = self.length_predictor.generate(encodings, **kwargs)
+                dec1_ids = torch.where(start_tokens['dec_ids']==1, kwargs['mask_id'], dec1_kwargs.pop('space_id', None))
+                dec2_ids = torch.where(start_tokens['dec_ids']==1, kwargs['mask_id'], dec2_kwargs.pop('space_id', None))    
+            else :
+                dec1_ids = None
+                dec2_ids = None
+
         return self.decoder1.generate(dec1_ids, context = encodings, context_mask = mask, **dec1_kwargs),\
             self.decoder2.generate(dec2_ids, context = encodings, context_mask = mask, **dec2_kwargs)
 
-    def forward(self, src, tgt1, tgt2, len_labels = None, mask = None, attn_mask = None, src_prepend_embeds = None, **kwargs):
-
+    def forward(self, src, dec1_tgt, dec2_tgt, lp_tgt = None, mask = None, attn_mask = None, src_prepend_embeds = None, **kwargs):
+        # 잘짜면 없애도 될듯
+        dec1_kwargs, kwargs = groupby_prefix_and_trim('dec1_', kwargs)
+        dec2_kwargs, kwargs = groupby_prefix_and_trim('dec2_', kwargs)
+        lp_kwargs, kwargs = groupby_prefix_and_trim('lp_', kwargs)
         if exists(src_prepend_embeds) and exists(mask):
             mask = pad_at_dim(mask, (src_prepend_embeds.shape[-2], 0), dim = -1, value = True)
 
         if 'plm' in kwargs:
-            enc = self.encoder(src, mask)['last_hidden_state']  # 인코더의 마스크가 뭐더라
+            enc = self.encoder(src, mask)['last_hidden_state'] 
         else:
             enc = self.encoder(src, mask = mask, attn_mask = attn_mask, prepend_embeds = src_prepend_embeds, return_embeddings = True)
-
-        dec1_kwargs, kwargs = groupby_prefix_and_trim('dec1_', kwargs)
-        dec2_kwargs, kwargs = groupby_prefix_and_trim('dec2_', kwargs)
         
         if self.training and self.cross_attn_tokens_dropout > 0:
             enc, mask = dropout_seq(enc, mask, self.cross_attn_tokens_dropout)
         
-        out1 = self.decoder1(tgt1, context = enc, context_mask = mask, **dec1_kwargs)
-        out2 = self.decoder2(tgt2, context = enc, context_mask = mask, **dec2_kwargs)
+        out1 = self.decoder1(dec1_tgt, context = enc, context_mask = mask, **dec1_kwargs)
+        out2 = self.decoder2(dec2_tgt, context = enc, context_mask = mask, **dec2_kwargs)
+
 
         if self.length_predictor is not None:
-            length_loss = self.length_predictor(len_labels, enc)
+            length_loss = self.length_predictor(lp_tgt, enc)
             return out1 + out2 + length_loss
 
         return out1 + out2

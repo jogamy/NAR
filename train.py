@@ -82,7 +82,7 @@ class Module(pl.LightningModule):
     def __init__(self, args, **kwargs):
         super().__init__()
         self.save_hyperparameters(args)
-        
+
         self.train_mode = args.train_mode
 
         enc_tok = kwargs['enc_tok']
@@ -122,6 +122,10 @@ class Module(pl.LightningModule):
             'dec2_max_seq_len' : args.max_len,
         }
 
+        if args.train_logic == "eojeol":
+            dec1_kwargs['dec1_space_id'] = dec1_tok.index(" ")
+            dec2_kwargs['dec2_space_id'] = dec2_tok.index("O+")
+            
         self.model = DualDecoderNATransformer(
             dim = args.d_model,
             mask_index = dec1_tok.mask_token_id,
@@ -195,9 +199,10 @@ class Module(pl.LightningModule):
                 out1['sequence'], out2['sequence'])
 
     def forward(self, inputs):
+        if self.args.plm_path:
+            inputs['plm'] = self.args.plm_path
+
         if self.train_mode == "model":
-            if self.args.plm_path:
-                inputs['plm'] = self.args.plm_path
             return self.model(**inputs)
         elif self.train_mode == "constrainer":
             seq_in = inputs.pop('src', None)
@@ -238,14 +243,13 @@ if __name__ == '__main__':
     else:
         raise ValueError('No dataset')
 
-    if args.lp_structure == "eojeol":
-        assert args.dataset == "sejong"
+    if args.train_logic == "eojeol":
+        assert args.task == "KMA"
 
     datamodule = DataModule(args)
 
     # Tokenizer #####################################################
     # TODO update tokenizer
-    #   save tokenzier
     enc_tok = datamodule.enc_tok
     dec1_tok = datamodule.dec1_tok
     dec2_tok = datamodule.dec2_tok
