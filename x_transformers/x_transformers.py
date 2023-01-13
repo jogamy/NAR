@@ -16,7 +16,6 @@ from x_transformers.autoregressive_wrapper import AutoregressiveWrapper
 from x_transformers.non_autoregressive_wrapper import NonAutoregressiveWrapper
 from x_transformers.lengthpredictor import LengthPredictor
 
-
 # constants
 
 DEFAULT_DIM_HEAD = 64
@@ -1456,7 +1455,6 @@ class DualDecoderNATransformer(nn.Module):
         dec1_kwargs, kwargs = groupby_prefix_and_trim('dec1_', kwargs)
         dec2_kwargs, kwargs = groupby_prefix_and_trim('dec2_', kwargs)
         
-
         assert 'dim' not in enc_kwargs and 'dim' not in dec1_kwargs and 'dim' not in dec2_kwargs, 'dimension of either encoder or decoder must be set with `dim` keyword'
         enc_transformer_kwargs = pick_and_pop(['num_tokens', 'max_seq_len'], enc_kwargs)
         enc_transformer_kwargs['emb_dropout'] = enc_kwargs.pop('emb_dropout', 0)
@@ -1482,18 +1480,24 @@ class DualDecoderNATransformer(nn.Module):
             enc_kwargs['scale_residual_constant'] = 0.81 * ((enc_depth ** 4) * dec1_depth) ** .0625
             dec1_kwargs['scale_residual_constant'] = (3 * dec1_depth) ** 0.25
             dec2_kwargs['scale_residual_constant'] = (3 * dec2_depth) ** 0.25
-            
-        self.encoder = TransformerWrapper(
-            **enc_transformer_kwargs,
-            attn_layers = Encoder(dim = dim, **enc_kwargs)
-        )
+
+        if 'plm' in enc_kwargs:
+            self.encoder = enc_kwargs['plm']
+        else:
+            self.encoder = TransformerWrapper(
+                **enc_transformer_kwargs,
+                attn_layers = Encoder(dim = dim, **enc_kwargs)
+            )
 
         lp_kwargs, kwargs = groupby_prefix_and_trim('lp_', kwargs)
 
-        self.length_predictor = LengthPredictor(
-            dim=dim, 
-            **lp_kwargs
-            )
+        if lp_kwargs['structure'] is None:
+            self.length_predictor = None
+        else: 
+            self.length_predictor = LengthPredictor(
+                dim=dim, 
+                **lp_kwargs
+                )
         
         self.decoder1 = TransformerWrapper(
             **dec1_transformer_kwargs,
@@ -1544,7 +1548,10 @@ class DualDecoderNATransformer(nn.Module):
         if exists(src_prepend_embeds) and exists(mask):
             mask = pad_at_dim(mask, (src_prepend_embeds.shape[-2], 0), dim = -1, value = True)
 
-        enc = self.encoder(src, mask = mask, attn_mask = attn_mask, prepend_embeds = src_prepend_embeds, return_embeddings = True)
+        if 'plm' in kwargs:
+            enc = self.encoder(src, mask)['last_hidden_state']  # 인코더의 마스크가 뭐더라
+        else:
+            enc = self.encoder(src, mask = mask, attn_mask = attn_mask, prepend_embeds = src_prepend_embeds, return_embeddings = True)
 
         dec1_kwargs, kwargs = groupby_prefix_and_trim('dec1_', kwargs)
         dec2_kwargs, kwargs = groupby_prefix_and_trim('dec2_', kwargs)

@@ -20,7 +20,19 @@ class Constrainer(nn.Module):
         if dec2_tokens is not None:
             dec1_probs = dec1_probs * torch.clamp(self.constrainer.transpose(0,1)[dec2_tokens[:][:]][:], min=0.0, max=1.0)
 
-        return dec1_probs, dec2_probs
+        _, dec1_seq = dec1_probs.max(dim=-1)
+        out1 = {
+            'sequence' : dec1_seq,
+            'scores' : dec1_probs
+        }
+        
+        _, dec2_seq = dec2_probs.max(dim=-1)
+        out2 = {
+            'sequence' : dec2_seq,
+            'scores' : dec2_probs
+        }
+        return out1, out2
+        
 
     def forward(self, dec1_probs, dec2_probs, 
                 dec1_ids, dec2_ids,

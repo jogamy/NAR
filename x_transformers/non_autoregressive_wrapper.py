@@ -96,7 +96,6 @@ class NonAutoregressiveWrapper(nn.Module):
             if self.train_logic == "random":
                 inp = random_training(x)
             elif self.train_logic == "uniform":
-                # work in progress
                 pass
             else:
                 inp = torch.full_like(x, self.mask_index).long().to(x.device)

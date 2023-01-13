@@ -72,6 +72,8 @@ class ArgBase():
         parser.add_argument("--train_mode", type=str, default="model", help="NN to train")
 
         parser.add_argument("--model_path", type=str, default=None, help="Model path")
+
+        parser.add_argument("--plm_path", type=str, default=None, help="Model path")
         # parser.add_argument("--constrainer_path", type=str, default=None, help="Constrainer_path")
 
         return parser   
@@ -88,28 +90,33 @@ class Module(pl.LightningModule):
         dec2_tok = kwargs['dec2_tok']
 
         enc_kwargs = {
-            'enc_num_tokens' : enc_tok.vocab_size(),
+            'enc_num_tokens' : enc_tok.vocab_size,
             'enc_depth' : args.enc_n_layers,
             'enc_heads' : args.n_heads,
-            'enc_max_seq_len' : args.max_len
+            'enc_max_seq_len' : args.max_len,
         }
+
+        if args.plm_path:
+            from transformers import AutoModel
+            plm = AutoModel.from_pretrained(args.plm_path)
+            enc_kwargs['enc_plm'] = plm
 
         length_kwargs = {
             'lp_structure' : args.lp_structure,
             'lp_max_length' : args.lp_max_length,
-            'lp_pad_index' : enc_tok.pad(),
-            'lp_mask_index' : dec1_tok.mask(),
+            'lp_pad_index' : enc_tok.pad_token_id,
+            'lp_mask_index' : dec1_tok.mask_token_id,
         }
 
         dec1_kwargs = {
-            'dec1_num_tokens' : dec1_tok.vocab_size(),
+            'dec1_num_tokens' : dec1_tok.vocab_size,
             'dec1_depth' : args.dec_n_layers,
             'dec1_heads' : args.n_heads,
             'dec1_max_seq_len' : args.max_len,
         }
 
         dec2_kwargs = {
-            'dec2_num_tokens' : dec2_tok.vocab_size(),
+            'dec2_num_tokens' : dec2_tok.vocab_size,
             'dec2_depth' : args.dec_n_layers,
             'dec2_heads' : args.n_heads,
             'dec2_max_seq_len' : args.max_len,
@@ -117,7 +124,7 @@ class Module(pl.LightningModule):
 
         self.model = DualDecoderNATransformer(
             dim = args.d_model,
-            mask_index = enc_tok.mask(),
+            mask_index = dec1_tok.mask_token_id,
             tie_token_embeds = False,
             return_tgt_loss = True,
 
@@ -128,8 +135,8 @@ class Module(pl.LightningModule):
 
             train_logic=args.train_logic
         )
-
-        self.constrainer = Constrainer(dec1_tok.vocab_size(), dec2_tok.vocab_size())
+        
+        self.constrainer = Constrainer(dec1_tok.vocab_size, dec2_tok.vocab_size)
 
         if self.train_mode == "model":
             self.constrainer.eval()
@@ -182,26 +189,23 @@ class Module(pl.LightningModule):
         if self.train_mode == "model":
             return self.model.generate(x, **kwargs)
         else:
-            out = self.model.generate(x, **kwargs)
-            return self.constrainer.genetate(out, **kwargs)
+            out1, out2 = self.model.generate(x, **kwargs)
+            return self.constrainer.generate(
+                out1['scores'], out2['scores'],
+                out1['sequence'], out2['sequence'])
 
     def forward(self, inputs):
         if self.train_mode == "model":
+            if self.args.plm_path:
+                inputs['plm'] = self.args.plm_path
             return self.model(**inputs)
         elif self.train_mode == "constrainer":
             seq_in = inputs.pop('src', None)
-            # 여기서 eojeol이면 mask_id, space_id
             out1, out2 = self.model.generate(seq_in, **inputs)
             return self.constrainer(
                 out1['scores'], out2['scores'], 
                 **inputs
             )
-
-            # return self.constrainer(
-            #     out1['scores'], out2['scores'], 
-            #     inputs['dec1_ids'], inputs['dec2_ids'], 
-            #     inputs['tgt1'], inputs['tgt2'], 
-            # )
     
     def training_step(self, batch):
         loss = self(batch)
@@ -218,7 +222,6 @@ class Module(pl.LightningModule):
         val_loss_mean = torch.stack(losses).mean()
         self.log('val_loss', val_loss_mean, prog_bar=True)
     
-        
 if __name__ == '__main__':
     parser = ArgBase.add_model_specific_args(parser)
     parser = pl.Trainer.add_argparse_args(parser)
@@ -229,8 +232,9 @@ if __name__ == '__main__':
     if args.dataset == "sejong":
         from examples import SejongDataModule as DataModule
     elif args.dataset == "CONLL2003":
-        # from examples import SejongDataModule as DataModule
-        pass
+        from examples import CONLL2003DataModule as DataModule
+    # elif args.dataset == "MixATIS":
+    # elif args.dataset == "MixSNIPS":
     else:
         raise ValueError('No dataset')
 
@@ -246,8 +250,8 @@ if __name__ == '__main__':
     dec1_tok = datamodule.dec1_tok
     dec2_tok = datamodule.dec2_tok
 
-    assert dec1_tok.mask() == dec2_tok.mask(), f"different mask id {dec1_tok.mask()} {dec2_tok.mask()}"
-    assert dec1_tok.pad() == dec2_tok.pad(), f"different pad id {dec1_tok.pad()} {dec2_tok.pad()}"
+    assert dec1_tok.mask_token_id == dec2_tok.mask_token_id, f"different mask id {dec1_tok.mask_token_id} {dec2_tok.mask_token_id}"
+    assert dec1_tok.pad_token_id == dec2_tok.pad_token_id, f"different pad id {dec1_tok.pad_token_id} {dec2_tok.pad_token_id}"
 
     init_params = {
         'enc_tok' : enc_tok,

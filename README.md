@@ -7,6 +7,9 @@
   - torchtext==0.14.0
   - torchvision==0.14.0
   - einops==0.6.0
+  - tokenizers==0.13.2
+  - datasets==2.8.0
+  - transformers==4.25.1
 
   pip install -r requirements.txt
     
@@ -19,23 +22,13 @@ NAR
 |   |-- KMA
 |   |   |-- datamodule.py
 |   |   |-- sejong
-|   |   |   |-- stat.py
-|   |   |   |-- test.txt
-|   |   |   |-- train.txt
-|   |   |   |-- valid.txt
-|   |   |   `-- vocab
-|   |   |       |-- morphs.txt
-|   |   |       |-- srcs.txt
-|   |   |       `-- tags.txt
-|   |   `-- utils
-|   |       |-- utils.py
-|   |       `-- vocab.py
 |   |-- MixSLU(Work in progress)
-|   |-- NER(Work in progress)
+|   |-- NER
+|   |   |-- datamodule.py
+|   |   |-- CONLL2003
 |   |-- __init__.py
 |   `-- mytokenizer.py
-|-- examples_by_lucidrain
-|-- infer.py
+|-- infer.py(Work in progress)
 |-- requirements.txt
 |-- train.py
 `-- x_transformers
@@ -55,30 +48,17 @@ x_transformers: model tamplates
 x_transforemrs: https://github.com/lucidrains/x-transformers
 
 -------------------------------------
-# Demo for x-transformer
-
-## Autoregressive transformer test
-AR 트랜스포머 테스트입니다.
-```
-cd NAR/x-xransformers/examples_by_lucidrain/toy_tasks
-python enc_dec_copy.py
-```
-
--------------------------------------
 # Training
 
-argment details
+Argument details
 
     --train_mode    model/constrainer/model and constrainer
-    --task          KMA/SLU/NERs
+    --task          KMA/SLU/NER
     --dataset       sejong/MixATIS/CONLL2003
     --train_logic   random/uniform/eojeol
     --lp_structure  len_token/eojeol
 
-examples for Korean morphological anaylsis
-
-Model 학습
-
+## Korean morphological anaylsis
 ```
 cd NAR
 CUDA_VISIBLE_DEVICES=0,1 python train.py \
@@ -97,7 +77,6 @@ CUDA_VISIBLE_DEVICES=0,1 python train.py \
 ```
 
 Constrainer 학습
-
 ```
 cd NAR
 CUDA_VISIBLE_DEVICES=0,1 python train.py \
@@ -114,6 +93,23 @@ CUDA_VISIBLE_DEVICES=0,1 python train.py \
   --lp_structure eojeol --lp_max_length 111 \
   --default_root_dir v4
 ```
+
+## NER
+'''
+cd NAR
+CUDA_VISIBLE_DEVICES=1 python train.py \
+  --train_mode model \
+  --task NER --dataset CONLL2003 \
+  --max_epochs 100 --batch_size 128 \
+  --num_workers 8 --lr 5e-4 \
+  --devices 1 \
+  --warmup_ratio 0.05 \
+  --max_len 200 \
+  --d_model 768 --feedforward 2048 \
+  --dropout 0.3 \
+  --plm_path bert-base-uncased \
+  --default_root_dir v4
+'''
 
 ----------------------------------
 # Inference(WIP)

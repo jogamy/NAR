@@ -71,13 +71,9 @@ if __name__ == '__main__':
 
     output1, output2 = module.generate(input_ids, **kwargs)
 
-    print(output1['sequence'])
-    print(output1['scores'])
-    print(output1['sequence'].shape)
-    print(output1['scores'].shape)
-    
-    assert 1==0
+    print(dec1_tok.decode(output1['sequence'].tolist()[0]))
 
+    ## merge
 
     
     

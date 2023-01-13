@@ -9,27 +9,27 @@ class MyTokenizer:
         self.unk_word, self.pad_word, self.mask_word = unk, pad, mask
         self.symbols = []
         self.indices = {}
-        self.pad_index = self.add_symbol(pad)
-        self.unk_index = self.add_symbol(unk)
-        self.mask_index = self.add_symbol(mask)
+        self.pad_token_id = self.add_symbol(pad)
+        self.unk_token_id = self.add_symbol(unk)
+        self.mask_token_id = self.add_symbol(mask)
         if extra_special_symbols:
             for s in extra_special_symbols:
                 self.add_symbol(s)
         self.nspecial = len(self.symbols)
+        self.vocab_size = len(self.symbols)
     
-    def vocab_size(self):
-        return len(self.symbols)
+    # def vocab_size(self):
+    #     return len(self.symbols)
+    # def pad(self):
+    #     """Helper to get index of pad symbol"""
+    #     return self.pad_token_id
 
-    def pad(self):
-        """Helper to get index of pad symbol"""
-        return self.pad_index
-
-    def unk(self):
-        """Helper to get index of unk symbol"""
-        return self.unk_index
+    # def unk(self):
+    #     """Helper to get index of unk symbol"""
+    #     return self.unk_index
         
-    def mask(self):
-        return self.mask_index
+    # def mask(self):
+    #     return self.mask_index
 
     def index(self, sym):
         """Returns the index of the specified symbol"""
@@ -49,6 +49,7 @@ class MyTokenizer:
             idx = len(self.symbols)
             self.indices[word] = idx
             self.symbols.append(word)
+            self.vocab_size = len(self.symbols)
             return idx
 
     def encode(self, line : list) -> list:
@@ -82,3 +83,4 @@ class MyTokenizer:
             else :
                 word = word.strip()
             self.add_symbol(word)
+        self.vocab_size = len(self.symbols)

@@ -25,7 +25,6 @@ class SejongCollator:
 
     def __call__(self, features):
         for feature in features:
-            
             if self.lp_structure == "len_token":
                 feature['enc_ids'].insert(0, self.enc_tok.index("<len>"))
                 feature['enc_ids'] = feature['enc_ids'][:-1]
@@ -33,8 +32,8 @@ class SejongCollator:
             elif self.lp_structure == "eojeol":
                 # feature['len_labels'], feature['dec_input'] = self.eojeol_labeling(feature['dec1_labels'], feature['enc_ids'])
                 feature['len_labels'], dec_input = self.eojeol_labeling(feature['dec1_labels'], feature['enc_ids'])
-                feature['dec1_ids'] = self.eojeol_input(dec_input, self.dec1_tok.index("<mask>"), self.dec1_tok.index(" "))
-                feature['dec2_ids'] = self.eojeol_input(dec_input, self.dec2_tok.index("<mask>"), self.dec2_tok.index("O+"))
+                feature['dec1_ids'] = self.eojeol_input(dec_input, self.dec1_tok.mask_token_id, self.dec1_tok.index(" "))
+                feature['dec2_ids'] = self.eojeol_input(dec_input, self.dec2_tok.mask_token_id, self.dec2_tok.index("O+"))
 
                 feature['dec1_ids'] = self.padding(feature['dec1_ids']) 
                 feature['dec2_ids'] = self.padding(feature['dec2_ids']) 
@@ -176,7 +175,6 @@ class SejongDataset(Dataset):
         return srcs, morphemes, tags
 
 class SejongDataModule(pl.LightningDataModule):
-    # def __init__(self, dataset, lp_structure, enc_tok, dec1_tok, dec2_tok, max_len, batch_size=8, num_workers=5):
     def __init__(self, args):
         super().__init__()
         self.args = args
@@ -200,13 +198,17 @@ class SejongDataModule(pl.LightningDataModule):
         self.dec1_tok.read_vocab(os.path.join(vocab_path, 'morphs.txt'))
         self.dec2_tok.read_vocab(os.path.join(vocab_path, 'tags.txt'))
 
-        assert self.enc_tok.index("<pad>")==self.dec1_tok.index("<pad>")==self.dec2_tok.index("<pad>"), "please match pad token id"
-        assert self.dec1_tok.mask()==self.dec2_tok.mask(), f"different mask index  {self.dec1_tok.mask} {self.dec2_tok.mask}"
-        assert self.dec1_tok.pad()==self.dec2_tok.pad(), f"different pad index {self.dec1_tok.pad} {self.dec2_tok.pad}"
-
+        assert self.enc_tok.pad_token_id == self.dec1_tok.pad_token_id == self.dec2_tok.pad_token_id,\
+            f"please match pad token id {self.enc_tok.pad_token_id} {self.dec1_tok.pad_token_id} {self.dec2_tok.pad_token_id}"
+        assert self.dec1_tok.mask_token_id == self.dec2_tok.mask_token_id,\
+             f"different mask index  {self.dec1_tok.mask_token_id} {self.dec2_tok.mask_token_id}"
+        assert self.dec1_tok.pad_token_id == self.dec2_tok.pad_token_id, \
+             f"different pad index {self.dec1_tok.pad_token_id} {self.dec2_tok.pad_token_id}"
+        
         self.datacollator = SejongCollator(
             lp_structure=self.lp_structure,
-            enc_tok=self.enc_tok, dec1_tok=self.dec1_tok, dec2_tok=self.dec2_tok, max_len=self.max_len, pad_id=self.enc_tok.index("<pad>"))
+            enc_tok=self.enc_tok, dec1_tok=self.dec1_tok, dec2_tok=self.dec2_tok, 
+            max_len=self.max_len, pad_id=self.enc_tok.pad_token_id)
 
         self.train_file_path = os.path.join(DIR, self.dataset, 'train.txt')
         self.valid_file_path = os.path.join(DIR, self.dataset, 'valid.txt') 
