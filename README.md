@@ -52,11 +52,11 @@ x_transforemrs: https://github.com/lucidrains/x-transformers
 
 Argument details
 
-    --train_mode    model/constrainer/model and constrainer
-    --task          KMA/SLU/NER
-    --dataset       sejong/MixATIS/CONLL2003
-    --train_logic   random/uniform/eojeol
-    --lp_structure  len_token/eojeol
+    --train_mode    model | constrainer | model and constrainer
+    --task          KMA | SLU | NER
+    --dataset       sejong | MixATIS | CONLL2003
+    --train_logic   random | uniform |eojeol
+    --lp_structure  len_token | eojeol
 
 ## Korean morphological anaylsis
 ```
