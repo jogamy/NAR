@@ -190,6 +190,9 @@ class Module(pl.LightningModule):
 
     @torch.no_grad()
     def generate(self, x, **kwargs):
+        if self.args.plm_path:
+            kwargs['plm'] = self.args.plm_path
+        
         if self.train_mode == "model":
             return self.model.generate(x, **kwargs)
         else:

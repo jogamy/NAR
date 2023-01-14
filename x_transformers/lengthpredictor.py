@@ -106,7 +106,7 @@ class LengthPredictor(nn.Module):
                 'dec_ids' : dec_ids
             }
 
-        assert False
+        assert 1==0
         
     def forward(self, length_labels, enc_output):
         

@@ -26,25 +26,29 @@ if __name__ == '__main__':
     args = argparse.Namespace(**hparams)
 
     if args.dataset == "sejong":
-        enc_tok = MyTokenizer()
-        if args.lp_structure == "len_token":
-            enc_tok = MyTokenizer(extra_special_symbols=['<len>'])
-        dec1_tok = MyTokenizer()
-        dec2_tok = MyTokenizer()
-
-        vocab_path = os.path.join(DIR, "examples", args.task, args.dataset, 'vocab')
-
-        enc_tok.read_vocab(os.path.join(vocab_path, 'srcs.txt'))
-        dec1_tok.read_vocab(os.path.join(vocab_path, 'morphs.txt'))
-        dec2_tok.read_vocab(os.path.join(vocab_path, 'tags.txt'))
+        from examples import SejongDataModule as DataModule
+    elif args.dataset == "CONLL2003":
+        from examples import CONLL2003DataModule as DataModule
+    # elif args.dataset == "MixATIS":
+    # elif args.dataset == "MixSNIPS":
     
-    kwargs = {
+
+    datamodule = DataModule(args)
+    datamodule.inference_setup()
+
+    test_dataloader = datamodule.test_dataloader()
+
+    enc_tok = datamodule.enc_tok
+    dec1_tok = datamodule.dec1_tok 
+    dec2_tok = datamodule.dec2_tok 
+
+    tokneizers = {
         'enc_tok': enc_tok,
         'dec1_tok': dec1_tok,
         'dec2_tok': dec2_tok
     }
-        
-    module = Module.load_from_checkpoint(args.model_path, args=args, **kwargs)
+
+    module = Module.load_from_checkpoint(args.model_path, args=args, **tokneizers)
 
     module.model = module.model.cuda()
     module.model.eval()
@@ -57,26 +61,16 @@ if __name__ == '__main__':
         print(f"min  : {module.constrainer.constrainer.min()}")
         print(f"mean : {module.constrainer.constrainer.mean()}")
 
-    kwargs = {
-        'mask_id' : dec1_tok.mask_token_id,
-        'dec1_space_id' : dec1_tok.index(" "),
-        'dec2_space_id' : dec2_tok.index("O+"),
-    }
-
-    example_sent = "나는 하늘을 나는 새를 봤다."
-    input_ids = enc_tok.encode(example_sent)
-    input_ids = torch.tensor(input_ids).cuda()
-    num_dims = len(input_ids.shape)
-    if num_dims == 1:
-            input_ids = input_ids[None, :]
-
-    output1, output2 = module.generate(input_ids, **kwargs)
-
-    # print(output1['sequence'].tolist())
-    # assert 1==0
-
-    print(dec1_tok.decode(output1['sequence'].tolist()))
-
+    for i in tqdm(range(len(datamodule.test))):
+        for inputs in datamodule.test[i]:
+            x = inputs.pop('x', None)
+            mask = inputs.pop('mask', None) 
+            out1, out2 = module.generate(x.cuda(), **inputs)
+    
+    # TODO update to generator
+    # for data in test_dataloader:
+    #     print(data)
+            
     ## merge
     
     

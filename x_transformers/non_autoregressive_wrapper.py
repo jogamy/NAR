@@ -61,15 +61,16 @@ class NonAutoregressiveWrapper(nn.Module):
         **kwargs
     ):
         if 'tgt' in kwargs:
-            x = kwargs.pop('tgt', None)
-            if self.train_logic == "random":
-                start_tokens = random_mask(x)
-            elif self.train_logic == "uniform":
-                pass
-            elif self.train_logic == "eojeol":
-                start_tokens = eojeol_mask(x, self.space_id, self.mask_index, self.pad_value)
-            else:
-                start_tokens = full_mask(x, self.mask_index, self.pad_value)
+            start_tokens = kwargs.pop('tgt', None)
+
+        if self.train_logic == "random":
+            start_tokens = random_mask(start_tokens)
+        elif self.train_logic == "uniform":
+            pass
+        elif self.train_logic == "eojeol":
+            start_tokens = eojeol_mask(start_tokens, self.space_id, self.mask_index, self.pad_value)
+        else:
+            start_tokens = full_mask(start_tokens, self.mask_index, self.pad_value)
 
         device = start_tokens.device
 

@@ -132,7 +132,6 @@ class SejongDataset(Dataset):
         assert len(self.morphemes[index])==len(self.tags[index]), f"{self.morphemes[index]}\n{self.tags[index]}"
         assert len(self.morphemes[index])<=self.max_len, f"{len(self.morphemes[index])}"
 
-        
         return {'enc_ids': np.array(enc_ids, dtype=np.int_),
                 'dec1_tgt': np.array(dec1_tgt, dtype=np.int_),
                 'dec2_tgt': np.array(dec2_tgt, dtype=np.int_),
@@ -165,6 +164,61 @@ class SejongDataset(Dataset):
             tags.append(tag)
         
         return srcs, morphemes, tags
+
+
+class TestDataset(Dataset):
+    def __init__(self, file_path, enc_tok, max_len):
+        self.filepath = file_path
+        
+        self.enc_tok = enc_tok
+        self.max_len = max_len
+        self.srcs = self.load_data()
+    
+    def __len__(self):
+        return len(self.srcs)
+
+    def __getitem__(self, index):
+        '''
+        src -> [
+            split_sent1, 
+            split_sent2,
+            ...
+        ]
+        '''
+        splitted_sents, _ = truncation(self.max_len//2, " ".join(self.srcs[index]))
+
+        inputs = []
+        
+        for splitted_sent in splitted_sents:
+            enc_id = self.enc_tok.encode(splitted_sent)
+            mask = [True] * len(enc_id)
+
+            enc_id = torch.tensor(enc_id).long()
+            mask = torch.tensor(mask).bool()
+
+            inputs.append(
+                {
+                    "x" : enc_id[None, :],
+                    "mask" : mask[None, :]
+                }
+            )
+            
+        return inputs
+        
+
+    def load_data(self):
+        srcs = []
+        with open(self.filepath, 'r', encoding="utf-8-sig") as f:
+            src = []
+            for line in f:
+                if line=="\n":
+                    srcs.append(src)
+                    src = []
+                else:
+                    src_eoj, tgt_eoj = line.strip().split(" ")
+                    src.append(src_eoj)
+    
+        return srcs
 
 class SejongDataModule(pl.LightningDataModule):
     def __init__(self, args):
@@ -204,10 +258,14 @@ class SejongDataModule(pl.LightningDataModule):
 
         self.train_file_path = os.path.join(DIR, self.dataset, 'train.txt')
         self.valid_file_path = os.path.join(DIR, self.dataset, 'valid.txt') 
+        self.test_file_path = os.path.join(DIR, self.dataset, 'test.txt') 
         
     def setup(self, stage):
         self.train = SejongDataset(self.train_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
         self.valid = SejongDataset(self.valid_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
+    
+    def inference_setup(self):
+        self.test = TestDataset(self.test_file_path, self.enc_tok, self.max_len)
             
     def train_dataloader(self):
         train = DataLoader(self.train, collate_fn=self.datacollator,
@@ -220,4 +278,12 @@ class SejongDataModule(pl.LightningDataModule):
                          batch_size=self.batch_size,
                          num_workers=self.num_workers, shuffle=False)
         return val
-        
+    
+    def test_dataloader(self):
+        # test = DataLoader(self.test, collate_fn=self.datacollator,
+        #                  batch_size=1,
+        #                  num_workers=self.num_workers, shuffle=False)
+        test = DataLoader(self.test, batch_size=1,
+                         num_workers=self.num_workers, shuffle=False)
+
+        return test

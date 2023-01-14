@@ -1534,35 +1534,30 @@ class DualDecoderNATransformer(nn.Module):
             encodings = self.encoder(seq_in, mask)['last_hidden_state']  
         else:       
             encodings = self.encoder(seq_in, mask = mask, attn_mask = attn_mask, return_embeddings = True)        
-        
+                
         if 'tgt' in dec1_kwargs:
             return self.decoder1.generate(None, context = encodings, context_mask = mask, **dec1_kwargs),\
             self.decoder2.generate(None, context = encodings, context_mask = mask, **dec2_kwargs)
 
         if self.length_predictor is None:
-            assert 'enc_len' in kwargs, f"{kwargs}"
-            print(kwargs.keys())
-            print(kwargs['enc_len'])
-            
-            for enc_len in kwargs['enc_len']:
-                [self.mask_index] * enc_len
-            print()
-            assert 1==0
-            self.mask_index
-        else:
-            if 'len_labels' not in kwargs:
-                start_tokens = self.length_predictor.generate(encodings, **kwargs)
-                dec1_ids = torch.where(start_tokens['dec_ids']==1, kwargs['mask_id'], dec1_kwargs.pop('space_id', None))
-                dec2_ids = torch.where(start_tokens['dec_ids']==1, kwargs['mask_id'], dec2_kwargs.pop('space_id', None))    
-            else :
-                dec1_ids = None
-                dec2_ids = None
+            assert 'src_len' in kwargs, f"{kwargs}"
+            src_len = kwargs.pop('src_len', None)
 
-        return self.decoder1.generate(dec1_ids, context = encodings, context_mask = mask, **dec1_kwargs),\
-            self.decoder2.generate(dec2_ids, context = encodings, context_mask = mask, **dec2_kwargs)
+            dec_ids = [1] * src_len 
+
+            dec_ids = torch.tensor(dec_ids).long().cuda(device=encodings.device)
+
+            start_tokens = {
+                'dec_ids' : dec_ids
+            }
+            
+        else:
+            start_tokens = self.length_predictor.generate(encodings, **kwargs)
+            
+        return self.decoder1.generate(start_tokens['dec_ids'], context = encodings, context_mask = mask, **dec1_kwargs),\
+            self.decoder2.generate(start_tokens['dec_ids'], context = encodings, context_mask = mask, **dec2_kwargs)
 
     def forward(self, src, dec1_tgt, dec2_tgt, lp_tgt = None, mask = None, attn_mask = None, src_prepend_embeds = None, **kwargs):
-        # 잘짜면 없애도 될듯
         dec1_kwargs, kwargs = groupby_prefix_and_trim('dec1_', kwargs)
         dec2_kwargs, kwargs = groupby_prefix_and_trim('dec2_', kwargs)
         lp_kwargs, kwargs = groupby_prefix_and_trim('lp_', kwargs)

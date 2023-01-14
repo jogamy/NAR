@@ -126,6 +126,48 @@ class CONLL2003Dataset(Dataset):
     
         return srcs, poss, ners
 
+class TestDataset(Dataset):
+    def __init__(self, file_path, enc_tok, max_len):
+        self.filepath = file_path
+        
+        self.enc_tok = enc_tok
+        self.max_len = max_len
+        self.srcs = self.load_data()
+    
+    def __len__(self):
+        return len(self.srcs)
+
+    def __getitem__(self, index):
+        
+        enc_id = self.enc_tok.encode(self.srcs[index])
+        mask = [True] * len(enc_id)
+
+        assert len(enc_id) < self.max_len, f"{len(enc_id)} >= {self.max_len} "
+
+        enc_id = torch.tensor(enc_id).long()
+        mask = torch.tensor(mask).bool()
+
+        inputs = []
+
+        inputs.append(
+            {
+                'x': enc_id[None, :],
+                'mask' : mask[None, :],
+                'src_len' : len(self.srcs[index].split(" "))
+            }
+        )
+
+        return inputs
+
+    def load_data(self):
+        data = load_dataset('conll2003', split=self.filepath)
+        srcs = []
+    
+        for d in data:
+            srcs.append(" ".join(d['tokens']))
+            
+        return srcs
+
 class CONLL2003DataModule(pl.LightningDataModule):
     def __init__(self, args):
         super().__init__()
@@ -161,11 +203,14 @@ class CONLL2003DataModule(pl.LightningDataModule):
 
         self.train_file_path = 'train'
         self.valid_file_path = 'validation'
-
+        self.test_file_path = 'test'
         
     def setup(self, stage):
         self.train = CONLL2003Dataset(self.train_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
         self.valid = CONLL2003Dataset(self.valid_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
+    
+    def inference_setup(self):
+        self.test = TestDataset(self.test_file_path, self.enc_tok, self.max_len)
             
     def train_dataloader(self):
         train = DataLoader(self.train, collate_fn=self.datacollator,
@@ -178,3 +223,9 @@ class CONLL2003DataModule(pl.LightningDataModule):
                          batch_size=self.batch_size,
                          num_workers=self.num_workers, shuffle=False)
         return val
+    
+    def test_dataloader(self):
+        test = DataLoader(self.test, batch_size=1,
+                         num_workers=self.num_workers, shuffle=False)
+
+        return test

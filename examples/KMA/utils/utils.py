@@ -94,7 +94,7 @@ def truncation(threshold_length, src, tgt=None):
 
     if tgt_buffer:
         splitted_tgt.append(" ".join(tgt_buffer))
-    assert " ".join(splitted_tgt)==tgt, f"{splitted_tgt}\n{tgt}"
+        assert " ".join(splitted_tgt)==tgt, f"{splitted_tgt}\n{tgt}"
 
     return splitted_src, splitted_tgt
 
