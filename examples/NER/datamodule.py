@@ -179,7 +179,11 @@ class CONLL2003DataModule(pl.LightningDataModule):
 
         self.max_len = args.max_len
 
-        self.enc_tok = AutoTokenizer.from_pretrained(args.plm_path)    
+        if args.plm_path:
+            self.enc_tok = AutoTokenizer.from_pretrained(args.plm_path)    
+        else:
+            self.enc_tok = MyTokenizer()
+            assert 1 == 0, f"implement"
         self.dec1_tok = MyTokenizer()
         self.dec2_tok = MyTokenizer()
 
