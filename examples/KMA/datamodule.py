@@ -26,9 +26,8 @@ class SejongCollator:
     def __call__(self, features):
         for feature in features:
             if self.lp_structure == "len_token":
-                feature['enc_ids'].insert(0, self.enc_tok.index("<len>"))
-                feature['enc_ids'] = feature['enc_ids'][:-1]
-                feature['lp_tgt'] = len(feature['dec1_labels'])
+                feature['enc_ids'] = np.insert(feature['enc_ids'], 0, self.enc_tok.index("<len>"))
+                feature['lp_tgt'] = len(feature['dec1_tgt'])
             elif self.lp_structure == "eojeol":
                 feature['lp_tgt'], dec_input = self.eojeol_labeling(feature['dec1_tgt'], feature['enc_ids'])
                 feature['lp_tgt'] = self.labeling(feature['lp_tgt'])
@@ -167,12 +166,14 @@ class SejongDataset(Dataset):
 
 
 class TestDataset(Dataset):
-    def __init__(self, file_path, enc_tok, max_len):
+    def __init__(self, file_path, enc_tok, max_len, lp_structure):
         self.filepath = file_path
         
         self.enc_tok = enc_tok
         self.max_len = max_len
         self.srcs = self.load_data()
+
+        self.lp_structure = lp_structure
     
     def __len__(self):
         return len(self.srcs)
@@ -191,6 +192,8 @@ class TestDataset(Dataset):
         
         for splitted_sent in splitted_sents:
             enc_id = self.enc_tok.encode(splitted_sent)
+            if self.lp_structure == 'len_token':
+                enc_id.insert(0, self.enc_tok.index("<len>"))
             mask = [True] * len(enc_id)
 
             enc_id = torch.tensor(enc_id).long()
@@ -205,7 +208,6 @@ class TestDataset(Dataset):
             
         return inputs
         
-
     def load_data(self):
         srcs = []
         with open(self.filepath, 'r', encoding="utf-8-sig") as f:
@@ -265,7 +267,7 @@ class SejongDataModule(pl.LightningDataModule):
         self.valid = SejongDataset(self.valid_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
     
     def inference_setup(self):
-        self.test = TestDataset(self.test_file_path, self.enc_tok, self.max_len)
+        self.test = TestDataset(self.test_file_path, self.enc_tok, self.max_len, self.lp_structure)
             
     def train_dataloader(self):
         train = DataLoader(self.train, collate_fn=self.datacollator,

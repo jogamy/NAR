@@ -61,11 +61,19 @@ if __name__ == '__main__':
         print(f"min  : {module.constrainer.constrainer.min()}")
         print(f"mean : {module.constrainer.constrainer.mean()}")
 
+    count = 0
     for i in tqdm(range(len(datamodule.test))):
         for inputs in datamodule.test[i]:
             x = inputs.pop('x', None)
             mask = inputs.pop('mask', None) 
             out1, out2 = module.generate(x.cuda(), **inputs)
+            print(dec1_tok.decode(out1['sequence'].tolist()))
+            print(dec2_tok.decode(out2['sequence'].tolist()))
+        
+        count += 1
+        if count == 5: break
+
+
     
     # TODO update to generator
     # for data in test_dataloader:

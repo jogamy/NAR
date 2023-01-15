@@ -246,9 +246,11 @@ if __name__ == '__main__':
     else:
         raise ValueError('No dataset')
 
-    if args.train_logic == "eojeol":
-        assert args.task == "KMA"
-
+    # if args.train_logic == "eojeol":
+    #     assert args.task == "KMA"
+    if args.lp_structure == "eojeol" and args.train_mode == 'model':
+        assert args.task == "KMA" and args.train_logic == "eojeol", f"{args.task} {args.train_logic}"
+    
     datamodule = DataModule(args)
 
     # Tokenizer #####################################################
@@ -286,5 +288,5 @@ if __name__ == '__main__':
 
     trainer = pl.Trainer.from_argparse_args(args, accelerator='gpu', devices=args.devices, strategy="dp",
                                         logger=tb_logger, callbacks=[checkpoint_callback, lr_logger])
-    
+
     trainer.fit(model=module, datamodule=datamodule)

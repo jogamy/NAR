@@ -38,6 +38,21 @@ class LengthPredictor(nn.Module):
         if self.structure == "len_token":
             # TODO beam!
             pass
+
+
+            '''
+            dec_ids = [
+                [1,1,1,1,0,0,0,0,0]
+                [1,1,1,1,1,1,1,1,0]
+            ]
+            '''
+            
+            return {
+                'dec_ids' : dec_ids,  
+                'scores' : None
+            }
+            
+            
         elif self.structure == "eojeol":
             length_max_probs, length_candidates = length_probs.max(dim=-1)
             
@@ -103,7 +118,7 @@ class LengthPredictor(nn.Module):
             dec_ids = torch.tensor(dec_ids).long().cuda(device=enc_output.device)
 
             return {
-                'dec_ids' : dec_ids
+                'dec_ids' : dec_ids     # [1,0,1,1,0,1,1,1] ...
             }
 
         assert 1==0
@@ -116,7 +131,11 @@ class LengthPredictor(nn.Module):
             logit = enc_output
         
         length_logit = self.length_predictor(logit)
-        length_logit = length_logit.transpose(1,2)
+
+        if self.structure == "len_token":
+            pass
+        else:
+            length_logit = length_logit.transpose(1,2)
     
         length_loss = F.cross_entropy(
             length_logit,

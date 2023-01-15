@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 class MyTokenizer:
     def __init__(
         self,
@@ -30,7 +32,8 @@ class MyTokenizer:
         
     # def mask(self):
     #     return self.mask_index
-
+    
+    @lru_cache()
     def index(self, sym):
         """Returns the index of the specified symbol"""
         assert isinstance(sym, str)
@@ -39,7 +42,8 @@ class MyTokenizer:
         print(f"{sym}{sym}{sym}{sym}{sym} -> unk")
 
         return self.unk_token_id
-
+    
+    @lru_cache()
     def word(self, id):
         if id < len(self.symbols):
             return self.symbols[id]
