@@ -1,7 +1,5 @@
-/root/NAR/examples/KMA/model
-/root/NAR/examples/KMA/constrainer
-/root/NAR/examples/NER/model
-/root/NAR/examples/NER/constrainer
+/root/NAR/examples/*/model
+/root/NAR/examples/*/constrainer
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
