@@ -65,7 +65,7 @@ NAR
 
 # Training
 
-examples for NER
+examples for SLU
 
 ```
 CUDA_VISIBLE_DEVICES=0 python train.py \
@@ -83,7 +83,11 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
   --default_root_dir v6
 ```
 
---train_mode : | | | |
+|environment variable|available variable|
+|-----------|------------|
+|--train_mode |           |
 
 
 ----------------
+
+# Inference
