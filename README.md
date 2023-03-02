@@ -83,7 +83,7 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
   --default_root_dir v6
 ```
 
---train_mode : -[ ] -[]
+--train_mode : - [ ]
 
 
 ----------------
