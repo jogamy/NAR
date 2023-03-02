@@ -69,25 +69,32 @@ examples for SLU
 
 ```
 CUDA_VISIBLE_DEVICES=0 python train.py \
-  --train_mode constrainer \
-  --model_path /root/NAR/examples/SLU/snips/model/v6/last.ckpt \
-  --task SLU --dataset snips \
-  --max_epochs 100 --batch_size 32 \
-  --num_workers 8 --lr 1e-3 \
+  --train_mode model \
+  --task NER --dataset conll2003 \
+  --max_epochs 200 --batch_size 64 \
+  --num_workers 8 --lr 5e-4 \
   --devices 1 \
   --warmup_ratio 0.05 \
-  --max_len 50 \
-  --enc_n_layers 6 --dec_n_layers 1 \
-  --d_model 512 --feedforward 2048 \
+  --max_len 200 \
+  --enc_n_layers 3 \
+  --n_heads 4 \
+  --d_model 128 \
   --dropout 0.3 \
-  --default_root_dir v6
+  --default_root_dir b64_e3_d128
 ```
 
-|environment variable|available choose|
-|-----------|------------|
-|--train_mode | |asdf|asdf|asdf|asdf| |
+--train_mode:   | model | constrainer |
+--task:         | SLU | NER | KMA | MIXSLU |
+--dataset:      | snips | atis | mixsnips | mixatis | conll2003 | sejong |
 
 
 ----------------
 
 # Inference
+
+
+```
+CUDA_VISIBLE_DEVICES=0 python infer.py \
+    --hparams /root/NAR/examples/NER/conll2003/model/v1/tb_logs/lightning_logs/version_0/hparams.yaml \
+    --model_path /root/NAR/examples/NER/conll2003/model/v1/last.ckpt
+```
