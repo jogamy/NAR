@@ -83,9 +83,9 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
   --default_root_dir v6
 ```
 
-|environment variable|available variable|
+|environment variable|available choose|
 |-----------|------------|
-|--train_mode |           |
+|--train_mode | [ ] 쿠쿠리삥뽕  [ ] 삥빵 뽕          |
 
 
 ----------------
