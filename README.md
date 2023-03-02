@@ -85,7 +85,7 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
 
 |environment variable|available choose|
 |-----------|------------|
-|--train_mode | [ ] 쿠쿠리삥뽕  [ ] 삥빵 뽕          |
+|--train_mode | |asdf|asdf|asdf|asdf| |
 
 
 ----------------
