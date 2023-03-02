@@ -55,9 +55,7 @@ NAR
 │   └── nar_wrapper.py
 ├── eval.py
 ├── infer.py
-├── infer.sh
 ├── train.py
-└── train.sh
 
 ```
 

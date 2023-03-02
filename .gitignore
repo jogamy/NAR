@@ -1,3 +1,5 @@
+/root/NAR/infer.sh
+/root/NAR/train.sh
 /root/NAR/examples/*/model
 /root/NAR/examples/*/constrainer
 # Byte-compiled / optimized / DLL files
