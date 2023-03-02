@@ -82,7 +82,9 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
 ```
 
 --train_mode:   | model | constrainer |
+
 --task:         | SLU | NER | KMA | MIXSLU |
+
 --dataset:      | snips | atis | mixsnips | mixatis | conll2003 | sejong |
 
 
