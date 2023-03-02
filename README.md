@@ -7,9 +7,6 @@ NAR
 │   ├── KMA
 │   │   ├── sejong
 │   │   │   ├── datamodule.py
-│   │   │   ├── model
-│   │   │   │   ├── eojeol
-│   │   │   │   └── len_token
 │   │   │   ├── test.txt
 │   │   │   ├── train.txt
 │   │   │   └── valid.txt
@@ -26,37 +23,18 @@ NAR
 │   │       └── util.py
 │   ├── NER
 │   │   ├── conll2003
-│   │   │   ├── datamodule.py
-│   │   │   └── model
-│   │   │       ├── b64_e3_d128
-│   │   │       ├── b64_e3_d256
-│   │   │       ├── b64_e4_d128
-│   │   │       ├── b64_e4_d256
-│   │   │       ├── v1
-│   │   │       └── v2
+│   │   │   └── datamodule.py
 │   │   └── utils
 │   │       ├── eval.py
 │   │       └── util.py
 │   ├── SLU
 │   │   ├── atis
 │   │   │   ├── datamodule.py
-│   │   │   ├── constrainer
-│   │   │   │   ├── v1
-│   │   │   │   └── v6
-│   │   │   ├── model
-│   │   │   │   ├── v1
-│   │   │   │   └── v6
 │   │   │   ├── dev.txt
 │   │   │   ├── test.txt
 │   │   │   └── train.txt
 │   │   ├── snips
 │   │   │   ├── datamodule.py
-│   │   │   ├── constrainer
-│   │   │   │   └── v1
-│   │   │   ├── model
-│   │   │   │   ├── plm
-│   │   │   │   ├── v1
-│   │   │   │   └── v6
 │   │   │   ├── dev.txt
 │   │   │   ├── test.txt
 │   │   │   └── train.txt
