@@ -1,7 +1,7 @@
-/root/NAR/infer.sh
-/root/NAR/train.sh
-/root/NAR/examples/*/model
-/root/NAR/examples/*/constrainer
+model/
+constrainer/
+*.sh
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

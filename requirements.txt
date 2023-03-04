@@ -1,0 +1,5 @@
+datasets==2.7.1
+einops==0.6.0
+ordered-set==4.1.0
+transformers==4.25.1
+x-transformers==1.7.17

@@ -81,9 +81,9 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
   --default_root_dir b64_e3_d128
 ```
 
---train_mode:   | model | constrainer |
+--train_mode:   | :black_square_button: model | :black_square_button: constrainer |
 
---task:         | SLU | NER | KMA | MIXSLU |
+--task:         | :black_square_button: SLU | :black_square_button: NER | :black_square_button: KMA | :black_square_button: MIXSLU |
 
 --dataset:      | snips | atis | mixsnips | mixatis | conll2003 | sejong |
 
