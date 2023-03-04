@@ -58,12 +58,26 @@ NAR
 ├── train.py
 
 ```
+---------
+# Arguments
+
+### Arguments for training
+
+|argument|available|
+| ------ | ------- |
+|train_mode|🔲 model  🔲 constrainer |
+|task | 🔲 SLU 🔲 NER  🔲 KMA 🔲 MIXSLU |
+|dataset| 🔲 snips  🔲 atis  🔲 mixsnips 🔲 mixatis 🔲 conll2003 🔲 sejong |
+|lp_structure | 🔲 cmlm 🔲 ctc 🔲 eojeol 🔲 fertility|
+|train_logic |🔲 uniform 🔲 full 🔲 eojeol |
+
+### Arguments for neural network
 
 -------------------
 
 # Training
 
-examples for SLU
+examples for NER
 
 ```
 CUDA_VISIBLE_DEVICES=0 python train.py \
@@ -83,10 +97,9 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
 
 |argument|available|
 | ------ | ------- |
-|train_mode|🔲 model  :black_square_button: constrainer |
-|task | :black_square_button: SLU :black_square_button: NER  :black_square_button: KMA :black_square_button: MIXSLU |
-|dataset|  :black_square_button: snips  :black_square_button: atis  :black_square_button: mixsnips :black_square_button: mixatis  :black_square_button:conll  :black_square_button:sejong |
-|train_mode|:black_square_button: model  :black_square_button: constrainer |
+|train_mode|🔳 model  🔲 constrainer |
+|task | 🔲 SLU 🔳 NER  🔲 KMA 🔲 MIXSLU |
+|dataset| 🔲 snips  🔲 atis  🔲 mixsnips 🔲 mixatis 🔳 conll2003 🔲 sejong |
 
 
 ----------------
