@@ -7,7 +7,6 @@ from x_transformers.autoregressive_wrapper import AutoregressiveWrapper
 from nn.custom_nar_wrapper import NonAutoregressiveWrapper
 from nn.lengthpredictor import LengthPredictor
 
-
 def beam_search(dec1_out, dec2_out, length_out):
     
     dec1_lprobs = dec1_out['probs'].log().sum(-1)
@@ -82,25 +81,25 @@ class DualNARDecoderTransformer(nn.Module):
             dec2_kwargs['scale_residual_constant'] = (3 * dec2_depth) ** 0.25
 
         # Encoder
-        self.plm = False
-        if 'plm' in enc_kwargs:
-            self.encoder = enc_kwargs['plm']
+        if enc_kwargs['plm'] != None:
             self.plm = True
+            from transformers import AutoModel
+            plm = AutoModel.from_pretrained(enc_kwargs['plm'])
+            self.encoder = plm
         else:
+            self.plm = False
             self.encoder = TransformerWrapper(
                 **enc_transformer_kwargs,
                 attn_layers = Encoder(dim = dim, **enc_kwargs)
             )
         
         # Length predictor
-        if lp_kwargs['structure'] is None:
-            self.length_predictor = None
-        else: 
-            self.length_predictor = LengthPredictor(
+        self.length_predictor = LengthPredictor(
                 dim=dim, 
                 **lp_kwargs
                 )
         
+        # decoders
         self.decoder1 = TransformerWrapper(
             **dec1_transformer_kwargs,
             # attn_layers = Decoder(dim = dim, cross_attend = True, **dec1_kwargs)
@@ -157,6 +156,11 @@ class DualNARDecoderTransformer(nn.Module):
         else:
             length_out = self.length_predictor.generate(encodings, seq_in, **kwargs)
         
+        length_out = self.length_predictor.generate(encodings, seq_in, **kwargs)
+        '''
+        length_out = {dec_ids, lengths, probs}
+        '''
+        
         dec1_out = self.decoder1.generate(length_out['dec_ids'], length_out['lengths'], context = encodings, context_mask = mask, **dec1_kwargs)
         dec2_out = self.decoder2.generate(length_out['dec_ids'], length_out['lengths'], context = encodings, context_mask = mask, **dec2_kwargs)
 
@@ -170,23 +174,24 @@ class DualNARDecoderTransformer(nn.Module):
         dec2_kwargs, kwargs = groupby_prefix_and_trim('dec2_', kwargs)
         lp_kwargs, kwargs = groupby_prefix_and_trim('lp_', kwargs)
 
-        if exists(src_prepend_embeds) and exists(mask):
-            mask = pad_at_dim(mask, (src_prepend_embeds.shape[-2], 0), dim = -1, value = True)
+        # if exists(src_prepend_embeds) and exists(mask):
+        #     mask = pad_at_dim(mask, (src_prepend_embeds.shape[-2], 0), dim = -1, value = True)
 
         if self.plm:
             enc = self.encoder(src, mask)['last_hidden_state'] 
         else:
             enc = self.encoder(src, mask = mask, attn_mask = attn_mask, prepend_embeds = src_prepend_embeds, return_embeddings = True)
             
-        if self.training and self.cross_attn_tokens_dropout > 0:
-            enc, mask = dropout_seq(enc, mask, self.cross_attn_tokens_dropout)
+        # if self.training and self.cross_attn_tokens_dropout > 0:
+        #     enc, mask = dropout_seq(enc, mask, self.cross_attn_tokens_dropout)
+        
+        length_out = self.length_predictor(lp_tgt, enc, **lp_kwargs)
         
         out1 = self.decoder1(dec1_tgt, context = enc, context_mask = mask, **dec1_kwargs)
         out2 = self.decoder2(dec2_tgt, context = enc, context_mask = mask, **dec2_kwargs)
 
-        if self.length_predictor is not None:
-            length_loss = self.length_predictor(lp_tgt, enc, **lp_kwargs)
-            return out1 + out2 + length_loss
+        if length_out == None:
+            return out1 + out2
 
-        return out1 + out2
-
+        return out1 + out2 + length_out
+    

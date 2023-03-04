@@ -122,33 +122,30 @@ class Module(pl.LightningModule):
         dec1_tok = kwargs['dec1_tok']
         dec2_tok = kwargs['dec2_tok']
 
+        # enc kwargs
         enc_kwargs = {
             'enc_num_tokens' : enc_tok.vocab_size,
             'enc_depth' : args.enc_n_layers,
             'enc_heads' : args.n_heads,
             'enc_max_seq_len' : args.max_len,
-            'enc_emb_dropout' : args.dropout
+            'enc_emb_dropout' : args.dropout,
+            'enc_plm': args.enc_plm
         }
 
-        if args.enc_plm:
-            from transformers import AutoModel
-            plm = AutoModel.from_pretrained(args.enc_plm)
-            enc_kwargs['enc_plm'] = plm
-        
+        # Length_predictor kwargs
         length_kwargs = {
             'lp_structure' : args.lp_structure,
             'lp_max_length' : args.lp_max_length,
-            'lp_pad_index' : enc_tok.pad_token_id,
-            'lp_mask_index' : dec1_tok.mask_token_id,
         }
-        if args.train_logic == "eojeol":
+        if args.lp_structure == "eojeol":
             length_kwargs['lp_space_id'] = enc_tok.index(" ")
-            
+        
+        # decoder kwargs
         dec1_kwargs = {
             'dec1_num_tokens' : dec1_tok.vocab_size,
             'dec1_depth' : args.dec_n_layers,
             'dec1_heads' : args.n_heads,
-            'dec1_max_seq_len' : args.max_len,
+            'dec1_max_seq_len' : args.ctc_k * args.max_len if args.lp_structure == "ctc" else args.max_len,
             'dec1_emb_dropout' : args.dropout
         }
 
@@ -156,7 +153,7 @@ class Module(pl.LightningModule):
             'dec2_num_tokens' : dec2_tok.vocab_size,
             'dec2_depth' : args.dec_n_layers,
             'dec2_heads' : args.n_heads,
-            'dec2_max_seq_len' : args.max_len,
+            'dec2_max_seq_len' : args.lp_ctc_k * args.max_len if args.lp_structure == "ctc" else args.max_len,
             'dec2_emb_dropout' : args.dropout
         }
 
@@ -229,8 +226,9 @@ class Module(pl.LightningModule):
 
         return [optimizer], [lr_scheduler]
     
+    # attn_mask를 알아서 만들어주나?
     @torch.no_grad()
-    def generate(self, x, mask, attn_mask=None, **kwrags):
+    def generate(self, x, mask, attn_mask = None, **kwrags):
         out1, out2 = self.model.generate(x, mask, attn_mask, **kwrags)
         if self.train_mode == "model":
             return out1, out2
@@ -264,6 +262,12 @@ class Module(pl.LightningModule):
         val_loss_mean = torch.stack(losses).mean()
         self.log('val_loss', val_loss_mean, prog_bar=True)
 
+def avail_check(args):
+    if args.train_mode != "model":
+        assert args.model_path != None, f"{args.model_path}"
+    if args.task != "KMA":
+        assert args.lp_structure != 'cmlm', f"{args.lp_structure}"
+    
 if __name__=="__main__":
     parser = ArgBase.add_model_specific_args(parser)
     parser = ModelCommonArgs.add_model_specific_args(parser)
@@ -272,7 +276,9 @@ if __name__=="__main__":
     parser = LengthPredictorArgs.add_model_specific_args(parser)
     parser = pl.Trainer.add_argparse_args(parser)
     args = parser.parse_args()
-    logging.info(args)    
+    logging.info(args)
+
+    avail_check(args)
 
     if args.dataset == 'sejong':
         from examples import SejongDataModule as DataModule
@@ -317,5 +323,6 @@ if __name__=="__main__":
 
     trainer = pl.Trainer.from_argparse_args(args, accelerator='gpu', devices=args.devices, strategy="dp",
                                         logger=tb_logger, callbacks=[checkpoint_callback, lr_logger])
+    
     
     trainer.fit(model=m, datamodule=dm)

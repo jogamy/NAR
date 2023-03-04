@@ -81,7 +81,7 @@ class SNIPSDataModule(BaseDataModule):
         self.valid_file_path = os.path.join(DIR, "dev.txt")
         self.test_file_path = os.path.join(DIR, 'test.txt')
 
-        assert self.lp_structure == None, f"{self.lp_structure}"
+        assert self.lp_structure == "labeling", f"{self.lp_structure}"
 
         if args.enc_plm:
             self.enc_tok = AutoTokenizer.from_pretrained(args.enc_plm)

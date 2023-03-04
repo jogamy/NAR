@@ -61,17 +61,34 @@ NAR
 ---------
 # Arguments
 
-### Arguments for training
+### Arguments for task
 
 |argument|available|
 | ------ | ------- |
 |train_mode|🔲 model  🔲 constrainer |
 |task | 🔲 SLU 🔲 NER  🔲 KMA 🔲 MIXSLU |
 |dataset| 🔲 snips  🔲 atis  🔲 mixsnips 🔲 mixatis 🔲 conll2003 🔲 sejong |
-|lp_structure | 🔲 cmlm 🔲 ctc 🔲 eojeol 🔲 fertility|
+|lp_structure | 🔲 cmlm 🔲 ctc 🔲 eojeol 🔲 fertility 🔲 labeling|
 |train_logic |🔲 uniform 🔲 full 🔲 eojeol |
 
 ### Arguments for neural network
+|argument|available|
+| ------ | ------- |
+| enc_n_layers | - |
+| dec_n_layers | - |
+| d_model | - |
+| max_len | - |
+| drop_out | - |
+
+### Arguments for training
+|argument|available|
+| ------ | ------- |
+| epochs | - |
+| batch_size | - |
+| lr | - |
+| num_workers | - |
+| devices | - |
+
 
 -------------------
 
@@ -100,6 +117,8 @@ CUDA_VISIBLE_DEVICES=0 python train.py \
 |train_mode|🔳 model  🔲 constrainer |
 |task | 🔲 SLU 🔳 NER  🔲 KMA 🔲 MIXSLU |
 |dataset| 🔲 snips  🔲 atis  🔲 mixsnips 🔲 mixatis 🔳 conll2003 🔲 sejong |
+|lp_structure | 🔲 cmlm 🔲 ctc 🔲 eojeol 🔲 fertility 🔳 labeling|
+|train_logic |🔲 uniform 🔲 full 🔲 eojeol |
 
 
 ----------------

@@ -138,6 +138,9 @@ class BaseDataModule(pl.LightningDataModule):
                          num_workers=self.num_workers, shuffle=False)
         return val
 
+    def test_dataloader(self):
+        raise NotImplementedError("Implement")
+
     # def test_dataloader(self):
     #     self.datacollator = BaseCollator(self.lp_structure, 
     #                                         self.enc_tok, self.dec1_tok, self.dec2_tok,

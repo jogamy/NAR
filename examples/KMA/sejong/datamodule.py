@@ -54,7 +54,7 @@ class SejongCollator(BaseCollator):
     def __call__(self, features):
         for feature in features:
             # lp tgt
-            if self.lp_structure == "len_token":
+            if self.lp_structure == "cmlm":
                 feature['lp_tgt'] = len(feature['dec1_tgt'])
             elif self.lp_structure == "eojeol":
                 feature['lp_tgt'] = self.eojeol_length(feature['dec1_tgt'], feature['enc_ids'])
@@ -111,8 +111,8 @@ class SejongCollator(BaseCollator):
         pass
 
 class SejongDataset(BaseDataset):
-    def __init__(self, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index=-100, training=True):
-        super().__init__(filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index)
+    def __init__(self, args, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index=-100, training=True):
+        super().__init__(args, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index)
         self.training = training
 
         self.srcs, self.tgts, self.dec1_tgts, self.dec2_tgts = load_data(filepath, training, max_len // 2)
@@ -140,11 +140,8 @@ class SejongDataModule(BaseDataModule):
         self.valid_file_path = os.path.join(DIR, "valid.txt")
         self.test_file_path = os.path.join(DIR, "test.txt")
 
-        '''
-        +, " "를 special token?
-        '''
 
-        if self.lp_structure == "len_token":
+        if self.lp_structure == "cmlm":
             self.enc_tok = MyTokenizer(extra_special_symbols=['<len>'])
         else:
             self.enc_tok = MyTokenizer()
@@ -172,11 +169,12 @@ class SejongDataModule(BaseDataModule):
         self.datacollator = SejongCollator(self.lp_structure, 
                                             self.enc_tok, self.dec1_tok, self.dec2_tok,
                                             args.max_len, self.enc_tok.pad_token_id)
+        self.args = args
     
     def setup(self, stage):
-        print(stage)
-        self.train = SejongDataset(self.train_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=True)
-        self.valid = SejongDataset(self.valid_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=True)
+        print(f"now stage:  {stage}")
+        self.train = SejongDataset(self.args, self.train_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=True)
+        self.valid = SejongDataset(self.args, self.valid_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=True)
         
     def inference_setup(self):
         self.test = SejongDataset(self.test_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=False)

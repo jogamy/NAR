@@ -1,6 +1,8 @@
 model/
 constrainer/
 *.sh
+data_stat.json
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

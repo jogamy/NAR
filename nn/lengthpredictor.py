@@ -3,6 +3,36 @@ from torch import nn
 import torch.nn.functional as F
 
 
+'''
+structure:
+    type:
+        def: what's need
+'''
+
+'''
+structure: 
+    cmlm: 
+        init: 디코더 최대 길이
+        forward: 타겟 길이, 인코더 표현
+        generate: 타겟 길이, 인코더 표현, beam size
+    fertility
+        init: fertility 최대 길이
+        forward: 타겟 길이, 인코더 표현
+        generate: 타겟 길이, 인코더 표현
+    eojeol
+        init: fertility 최대 길이
+        forward: 타겟 길이, 인코더 표현
+        generate: 타겟 길이, 인코더 표현, max/min/average/med
+    labeling
+        init: none
+        forward: pass
+        generate: 입력 단어 개수
+    ctc:
+        init: k, w
+        forward: pass
+        
+'''
+
 class LengthPredictor(nn.Module):
     def __init__(self,
         dim=512,
@@ -14,20 +44,49 @@ class LengthPredictor(nn.Module):
 
         self.structure = structure
         self.max_length = max_length
-        self.pad_index = kwargs['pad_index']
-        self.mask_index = kwargs['mask_index']
-    
-        if self.structure == None:
+        self.pad_index = 0
+        self.mask_index = 1
+
+        if self.structure == "labeling" or self.structure == "ctc":
             self.length_predictor = None
+            if self.structure == "ctc":
+                pass
+                # self.k = 2
+                #self.w = 
         else:
-            self.length_predictor=nn.Linear(dim, self.max_length+1)
-        
-        if self.structure == "eojeol":
-            self.space_id = kwargs['space_id']
+            self.length_predictor = nn.Linear(dim, self.max_length + 1)
+            if self.structure == "eojeol":
+                self.space_id = kwargs['space_id']
 
     @torch.no_grad()
     def generate(self, enc_output, seq_in, **kwargs):
+        lp_out = {
+            'dec_ids',
+            'lengths',
+            'probs'
+        }
 
+        if self.structure == 'labeling':
+            '''
+            1,1,1,0,0,0,0
+            '''
+            # assert 입력의 길이 필요
+            pass
+        if self.structure == 'ctc':
+            # need: self.k
+            pass
+        if self.structure == 'cmlm':
+            # need: beam size or batch_size
+            assert 'beam_size' in kwargs
+            logit = enc_output[:,0,:]
+            length_logit = self.length_predictor(logit)
+            length_probs = F.softmax(length_logit, dim=-1)
+        if self.structure == 'eojeol':
+            length_logit = self.length_predictor(logit)
+            length_probs = F.softmax(length_logit, dim=-1)
+        
+        assert 1==0
+        
         if self.structure == "len_token":
             logit = enc_output[:,0,:]
         else:
@@ -92,16 +151,20 @@ class LengthPredictor(nn.Module):
         assert 1==0
         
     def forward(self, length_labels, enc_output, **kwargs):
-        if self.structure == "len_token":
+        if self.length_predictor == None:
+            return None
+    
+        if self.structure == "cmlm":
             logit = enc_output[:,0,:]
         else:
             logit = enc_output
         
         length_logit = self.length_predictor(logit)
-
-        if self.structure == "len_token":
-            pass
-        else:
+        # cmlm:             b, max_length + 1
+            # label :       b
+        # fertility_like:   b, max_length, max_length + 1
+            # label:        b, l
+        if self.structure != "cmlm":    
             length_logit = length_logit.transpose(1,2)
     
         length_loss = F.cross_entropy(

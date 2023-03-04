@@ -76,7 +76,7 @@ class CONLL2003DataModule(BaseDataModule):
         self.valid_file_path = "validation"
         self.test_file_path = "test"
 
-        assert self.lp_structure == None, f"{self.lp_structure}"
+        assert self.lp_structure == "labeling", f"{self.lp_structure}"
 
         if args.enc_plm:
             assert 1==0

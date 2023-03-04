@@ -191,8 +191,17 @@ class NonAutoregressiveWrapper(nn.Module):
         return out
 
     def forward(self, x, **kwargs):
-        
-        if self.train_logic == "uniform":
+        '''
+        kwargs = {context, context_mask}
+        '''
+        if self.train_logic == 'ctc':
+            inp = kwargs['context']
+            '''
+            need what?
+            입력 토큰 길이만큼만 2배하고 padding 해야 하나
+            '''
+            assert 1==0
+        elif self.train_logic == "uniform":
             inp = uniform_mask(x, self.mask_index, self.pad_value)
         elif self.train_logic == "eojeol":
             inp = eojeol_mask(x, self.space_id, self.mask_index, self.pad_value)
