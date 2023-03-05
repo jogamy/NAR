@@ -177,7 +177,7 @@ class SejongDataModule(BaseDataModule):
         self.valid = SejongDataset(self.args, self.valid_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=True)
         
     def inference_setup(self):
-        self.test = SejongDataset(self.test_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=False)
+        self.test = SejongDataset(self.args, self.test_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=False)
         
     def test_dataloader(self):
         collat_fn = TestCollator(self.lp_structure, 

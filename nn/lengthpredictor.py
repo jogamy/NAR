@@ -28,8 +28,9 @@ structure:
         forward: pass
         generate: 입력 단어 개수
     ctc:
-        init: k, w
-        forward: pass
+        init: k
+        forward: ???????????
+        generate:.........
         
 '''
 
@@ -47,12 +48,11 @@ class LengthPredictor(nn.Module):
         self.pad_index = 0
         self.mask_index = 1
 
-        if self.structure == "labeling" or self.structure == "ctc":
+        if self.structure == 'labeling':
             self.length_predictor = None
-            if self.structure == "ctc":
-                pass
-                # self.k = 2
-                #self.w = 
+        elif self.structure == 'ctc':
+            assert 'k' in kwargs
+            self.length_predictor = nn.Linear(dim, dim * kwargs['k'])
         else:
             self.length_predictor = nn.Linear(dim, self.max_length + 1)
             if self.structure == "eojeol":
@@ -60,61 +60,65 @@ class LengthPredictor(nn.Module):
 
     @torch.no_grad()
     def generate(self, enc_output, seq_in, **kwargs):
+        
         lp_out = {
-            'dec_ids',
-            'lengths',
-            'probs'
+            'dec_inp': None,  # dec_ids: [beam, max_length], dec_emb = [beam, max_length, emb]
+            'lengths': None,  # [batch, beam]
+            'probs': None     # 정의
         }
 
         if self.structure == 'labeling':
-            '''
-            1,1,1,0,0,0,0
-            '''
-            # assert 입력의 길이 필요
+            assert 'length' in kwargs, f"{kwargs}"
+            
+            length = kwargs.pop('length', None)
+
+            dec_ids = [1] * length + [0] * (self.max_length - length)
+
+            dec_ids = torch.tensor(dec_ids).long().to(enc_output.device)
+            dec_ids = dec_ids.unsqueeze(0)
+            length = length.unsqueeze(0).to(dec_ids.device)
+
+            lp_out['dec_inp'] = dec_ids
+            lp_out['lengths'] = length
+            lp_out['probs'] = None  
+
+        elif self.structure == 'ctc':
+            logits = self.length_predictor(enc_output)
+            assert 1==0
             pass
-        if self.structure == 'ctc':
-            # need: self.k
-            pass
-        if self.structure == 'cmlm':
+        elif self.structure == 'cmlm':
             # need: beam size or batch_size
             assert 'beam_size' in kwargs
-            logit = enc_output[:,0,:]
-            length_logit = self.length_predictor(logit)
-            length_probs = F.softmax(length_logit, dim=-1)
-        if self.structure == 'eojeol':
-            length_logit = self.length_predictor(logit)
-            length_probs = F.softmax(length_logit, dim=-1)
-        
-        assert 1==0
-        
-        if self.structure == "len_token":
-            logit = enc_output[:,0,:]
-        else:
-            logit = enc_output
-        
-        length_logit = self.length_predictor(logit)
-        length_probs = F.softmax(length_logit, dim=-1)
 
-        b, l, _ = enc_output.size()
-
-        if self.structure == "len_token":
             beam_size = kwargs['beam_size']
-            beam_size = b * beam_size
-            dec_ids = torch.full((beam_size , l), self.pad_index, device=enc_output.device)
-            
+
+            logit = enc_output[:,0,:]
+            length_logit = self.length_predictor(logit)
+            length_probs = F.softmax(length_logit, dim=-1)
             length_max_probs, length_candidates = length_probs.topk(beam_size)
-            
+
+            b, l, _ = enc_output.shape
+            dec_ids = torch.full((beam_size , l), self.pad_index, device=enc_output.device)
             for i in range(beam_size):
                 dec_ids[i][:length_candidates[0][i]] = 1
-                        
-            return {
-                'dec_ids' : dec_ids,  
-                'lengths' : length_candidates,
-                'scores' : length_max_probs
-            }
-        elif self.structure == "eojeol":
+            
+            '''
+            length_candidates: [batch, beam]
+            length_max: [batch, beam]
+            '''
+
+            lp_out['dec_inp'] = dec_ids
+            lp_out['lengths'] = length_candidates
+            lp_out['probs'] = length_max_probs
+        
+        elif self.structure == 'eojeol':
+            logit = enc_output
+            length_logit = self.length_predictor(logit)
+            length_probs = F.softmax(length_logit, dim=-1)
 
             length_max_probs, length_candidates = length_probs.max(dim=-1)
+
+            b, l = length_candidates.shape
 
             dec_ids = torch.full_like(length_candidates, self.pad_index)
             lengths = torch.zeros(b, 1, dtype=length_candidates.dtype)
@@ -143,12 +147,17 @@ class LengthPredictor(nn.Module):
 
                 lengths[i] = torch.count_nonzero(dec_ids[i]!=self.pad_index)
             
-            return {
-                'dec_ids' : dec_ids,
-                'lengths' : lengths
-            }
+            lp_out['dec_inp'] = dec_ids
+            lp_out['lengths'] = lengths
+            lp_out['probs'] = length_max_probs
+        
+        elif self.structure == "fertility":
+            pass
+        else:
+            raise ValueError("Undefined length predictor")
 
-        assert 1==0
+        return lp_out
+        
         
     def forward(self, length_labels, enc_output, **kwargs):
         if self.length_predictor == None:
@@ -160,10 +169,15 @@ class LengthPredictor(nn.Module):
             logit = enc_output
         
         length_logit = self.length_predictor(logit)
-        # cmlm:             b, max_length + 1
-            # label :       b
-        # fertility_like:   b, max_length, max_length + 1
-            # label:        b, l
+        '''
+        cmlm:             b, max_length + 1
+            label :       b
+        fertility_like:   b, max_length, max_length + 1
+            label:        b, l
+        
+        흠.. ctc의 가중치는 여기서 학습이 힘들다
+        '''
+        
         if self.structure != "cmlm":    
             length_logit = length_logit.transpose(1,2)
     

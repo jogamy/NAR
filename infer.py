@@ -14,6 +14,19 @@ from examples.KMA.utils.util import merge_two_seq
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 
+'''
+inference args
+    CMLM
+        beam_size
+        alpha
+        iteration
+    eojeol
+        max/min/avg/med
+    Constrainer
+        direction
+        iteration
+'''
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -95,6 +108,12 @@ if __name__ == '__main__':
     
     count = 0
 
+    '''
+    로그를 
+        효율적이고
+        가독성있게
+    다른 사람들은 로그 어떻게 남기는지 확인
+    '''
     result_log = {}
     result_log['seqs1'] = {}
     result_log['probs1'] = {}

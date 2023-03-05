@@ -64,6 +64,9 @@ class ArgBase():
 
         return parser   
 
+# class tokenizerArgs():
+#     pass
+
 class ModelCommonArgs():
     @staticmethod
     def add_model_specific_args(parent_parser):

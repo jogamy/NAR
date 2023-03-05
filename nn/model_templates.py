@@ -138,32 +138,16 @@ class DualNARDecoderTransformer(nn.Module):
             return self.decoder1.generate(None, None, context = encodings, context_mask = mask, **dec1_kwargs),\
             self.decoder2.generate(None, None, context = encodings, context_mask = mask, **dec2_kwargs)
 
-        if self.length_predictor is None:
-            assert 'length' in kwargs, f"{kwargs}"
-            
-            length = kwargs.pop('length', None)
-
-            dec_ids = [1] * length + [0] * (self.decoder1.max_seq_len - length)
-
-            dec_ids = torch.tensor(dec_ids).long().to(encodings.device)
-            dec_ids = dec_ids.unsqueeze(0)
-            length = length.unsqueeze(0).to(dec_ids.device)
-
-            length_out = {
-                'dec_ids' : dec_ids,
-                'lengths' : length
-            }            
-        else:
-            length_out = self.length_predictor.generate(encodings, seq_in, **kwargs)
-        
         length_out = self.length_predictor.generate(encodings, seq_in, **kwargs)
         '''
         length_out = {dec_ids, lengths, probs}
         '''
         
-        dec1_out = self.decoder1.generate(length_out['dec_ids'], length_out['lengths'], context = encodings, context_mask = mask, **dec1_kwargs)
-        dec2_out = self.decoder2.generate(length_out['dec_ids'], length_out['lengths'], context = encodings, context_mask = mask, **dec2_kwargs)
+        dec1_out = self.decoder1.generate(length_out['dec_inp'], length_out['lengths'], context = encodings, context_mask = mask, **dec1_kwargs)
+        dec2_out = self.decoder2.generate(length_out['dec_inp'], length_out['lengths'], context = encodings, context_mask = mask, **dec2_kwargs)
 
+        assert 1==0
+        
         if kwargs['beam_size'] > 1:
             dec1_out, dec2_out = beam_search(dec1_out, dec2_out, length_out)
             
