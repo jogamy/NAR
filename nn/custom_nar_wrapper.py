@@ -108,6 +108,14 @@ class NonAutoregressiveWrapper(nn.Module):
         assert mask_prob < 1.
         self.mask_prob = mask_prob
 
+
+    '''
+    lp_out = {
+            'dec_inp',  # 토큰일때 size, ctc일때 size 다름
+            'lengths',  # 사이즈 정의
+            'probs'     # 정의
+        }
+    '''
     @torch.no_grad()
     def generate(
         self,
