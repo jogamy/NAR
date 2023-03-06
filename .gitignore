@@ -133,3 +133,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+examples/KMA/sejong/test.txt
+examples/KMA/sejong/train.txt
+examples/KMA/sejong/valid.txt
