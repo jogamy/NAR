@@ -12,6 +12,7 @@ from torch.optim.lr_scheduler import LambdaLR
 
 from nn.model_templates import DualNARDecoderTransformer
 from nn.constrainer import Constrainer
+from examples.utils.mytokenizer import MyTokenizer
 
 parser = argparse.ArgumentParser(description='Model')
 
@@ -64,8 +65,16 @@ class ArgBase():
 
         return parser   
 
-# class tokenizerArgs():
-#     pass
+class TokenizerArgs():
+    @staticmethod
+    def add_model_specific_args(parent_parser):
+        parser = argparse.ArgumentParser(
+            parents=[parent_parser], add_help=False)
+        
+        parser.add_argument('--enc_tok', type=str, default="custom")
+        parser.add_argument('--dec_tok', type=str, default="custom")
+        
+        return parser   
 
 class ModelCommonArgs():
     @staticmethod
@@ -140,9 +149,13 @@ class Module(pl.LightningModule):
             'lp_structure' : args.lp_structure,
             'lp_max_length' : args.lp_max_length,
         }
-        if args.lp_structure == "eojeol":
-            length_kwargs['lp_space_id'] = enc_tok.index(" ")
         
+        if args.lp_structure == "eojeol":
+            if isinstance(enc_tok, MyTokenizer):
+                length_kwargs['lp_space_id'] = enc_tok.index(" ")
+            else:
+                length_kwargs['lp_space_id'] = enc_tok.encode(' ', add_special_tokens=False)[0]
+
         # decoder kwargs
         dec1_kwargs = {
             'dec1_num_tokens' : dec1_tok.vocab_size,
@@ -161,9 +174,14 @@ class Module(pl.LightningModule):
         }
 
         if args.train_logic == "eojeol":
-            dec1_kwargs['dec1_space_id'] = dec1_tok.index(" ")
-            dec2_kwargs['dec2_space_id'] = dec2_tok.index(" ")
-        
+            if isinstance(dec1_tok, MyTokenizer):
+                dec1_kwargs['dec1_space_id'] = dec1_tok.index(" ")
+                dec2_kwargs['dec2_space_id'] = dec2_tok.index(" ")
+            else:
+                dec1_kwargs['dec1_space_id'] = dec1_tok.encode(' ', add_special_tokens=False)[0]
+                dec2_kwargs['dec2_space_id'] = dec2_tok.encode(' ', add_special_tokens=False)[0]
+            
+        # Neural net
         self.model = DualNARDecoderTransformer(
             dim = args.d_model,
             mask_index = dec1_tok.mask_token_id,
@@ -266,10 +284,13 @@ class Module(pl.LightningModule):
         self.log('val_loss', val_loss_mean, prog_bar=True)
 
 def avail_check(args):
-    if args.train_mode != "model":
+    # model 이외의 nn을 학습할 때는 반드시 model_path가 있어야 한다
+    if args.train_mode != "model":  
         assert args.model_path != None, f"{args.model_path}"
+    # KMA가 아니면 cmlm 이용 금지
     if args.task != "KMA":
         assert args.lp_structure != 'cmlm', f"{args.lp_structure}"
+
     
 if __name__=="__main__":
     parser = ArgBase.add_model_specific_args(parser)
@@ -277,6 +298,7 @@ if __name__=="__main__":
     parser = EncoderArgs.add_model_specific_args(parser)
     parser = DecoderArgs.add_model_specific_args(parser)
     parser = LengthPredictorArgs.add_model_specific_args(parser)
+    parser = TokenizerArgs.add_model_specific_args(parser)
     parser = pl.Trainer.add_argparse_args(parser)
     args = parser.parse_args()
     logging.info(args)
@@ -326,6 +348,5 @@ if __name__=="__main__":
 
     trainer = pl.Trainer.from_argparse_args(args, accelerator='gpu', devices=args.devices, strategy="dp",
                                         logger=tb_logger, callbacks=[checkpoint_callback, lr_logger])
-    
     
     trainer.fit(model=m, datamodule=dm)

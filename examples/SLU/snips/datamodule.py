@@ -52,8 +52,8 @@ class SNIPSCollator(BaseCollator):
         return batch
 
 class SNIPSDataset(BaseDataset):
-    def __init__(self, args, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index=-100):
-        super().__init__(args, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index)
+    def __init__(self, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index=-100):
+        super().__init__(filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index)
 
         self.srcs, self.dec1_tgts, self.dec2_tgts = load_data(filepath)
         
@@ -83,14 +83,6 @@ class SNIPSDataModule(BaseDataModule):
 
         assert self.lp_structure == "labeling", f"{self.lp_structure}"
 
-        if args.enc_plm:
-            self.enc_tok = AutoTokenizer.from_pretrained(args.enc_plm)
-        else:
-            self.enc_tok = MyTokenizer()
-            # No LP. No len token
-        self.dec1_tok = MyTokenizer()
-        self.dec2_tok = MyTokenizer()
-
         log_dict = {
             'train' : data_stat(self.train_file_path),
             'valid' : data_stat(self.valid_file_path),
@@ -100,23 +92,23 @@ class SNIPSDataModule(BaseDataModule):
         with open(log_path, 'w', encoding='utf-8') as f:
             json.dump(log_dict, f, ensure_ascii=False, indent=4)
         
-        if args.enc_plm:
-            pass
-        else:
+        if isinstance(self.enc_tok, MyTokenizer):
             self.enc_tok.read_vocab(log_dict["train"]["src_vocab"])
-        self.dec1_tok.read_vocab(log_dict["train"]["slt_vocab"])
-        self.dec2_tok.read_vocab(log_dict["train"]["int_vocab"])
+        
+        if isinstance(self.dec1_tok, MyTokenizer):
+            self.dec1_tok.read_vocab(log_dict["train"]["morph_vocab"])
+            self.dec2_tok.read_vocab(log_dict["train"]["tag_vocab"])
 
         self.datacollator = SNIPSCollator(self.lp_structure, 
                                             self.enc_tok, self.dec1_tok, self.dec2_tok,
                                             args.max_len, self.enc_tok.pad_token_id)
     
     def setup(self, stage):
-        self.train = SNIPSDataset(self.args, self.train_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
-        self.valid = SNIPSDataset(self.args, self.valid_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
+        self.train = SNIPSDataset(self.train_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
+        self.valid = SNIPSDataset(self.valid_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
     
     def inference_setup(self):
-        self.test = SNIPSDataset(self.args, self.test_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
+        self.test = SNIPSDataset(self.test_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len)
     
     def test_dataloader(self):
         collat_fn = TestCollator(self.lp_structure, 

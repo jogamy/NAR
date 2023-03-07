@@ -1,3 +1,12 @@
+# Requirements
+
+```
+pip install -r requirements.txt
+```
+
+
+------
+
 # Structure
 
 ```
@@ -61,33 +70,42 @@ NAR
 ---------
 # Arguments
 
-### Arguments for task
-
+### Arguments for training
 |argument|available|
 | ------ | ------- |
-|train_mode|🔲 model  🔲 constrainer |
-|task | 🔲 SLU 🔲 NER  🔲 KMA 🔲 MIXSLU |
-|dataset| 🔲 snips  🔲 atis  🔲 mixsnips 🔲 mixatis 🔲 conll2003 🔲 sejong |
-|lp_structure | 🔲 cmlm 🔲 ctc 🔲 eojeol 🔲 fertility 🔲 labeling|
-|train_logic |🔲 uniform 🔲 full 🔲 eojeol |
+| max_epochs | - |
+| batch_size | - |
+| lr | - |
+| warmup_ratio | - |
+| num_workers | - |
+| devices | - |
+| default_root_dir | - |
+
+### Arguments for task
+|argument|available|
+| ------ | ------- |
+| train_mode |🔲 model 🔲 constrainer |
+| model_path | - |
+| task | 🔲 SLU 🔲 NER  🔲 KMA 🔲 MIXSLU |
+| dataset | 🔲 snips  🔲 atis  🔲 mixsnips 🔲 mixatis 🔲 conll2003 🔲 sejong |
+| train_logic |🔲 uniform 🔲 full 🔲 random 🔲 eojeol 🔲 ctc |
+
 
 ### Arguments for neural network
 |argument|available|
 | ------ | ------- |
-| enc_n_layers | - |
-| dec_n_layers | - |
-| d_model | - |
-| max_len | - |
-| drop_out | - |
-
-### Arguments for training
-|argument|available|
-| ------ | ------- |
-| epochs | - |
-| batch_size | - |
-| lr | - |
-| num_workers | - |
-| devices | - |
+| enc_n_layers | default: 1 |
+| dec_n_layers | default: 1 |
+| max_len | default: 200 |
+| d_model | default: 512 |
+| n_heads | default: 8 |
+| enc_plm | default: None |
+| dec_plm | default: None |
+| enc_tok | default: "custom" |
+| dec_tok | default: "custom" |
+| lp_structure | 🔲 cmlm 🔲 ctc 🔲 eojeol 🔲 fertility 🔲 labeling |
+| lp_max_length | default: 200 |
+| dropout | default: 0.3 |
 
 
 -------------------

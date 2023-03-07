@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader
 from ...datamodule import BaseCollator, BaseDataset, BaseDataModule
 from examples.utils.mytokenizer import MyTokenizer
 from examples.KMA.utils.util import data_stat, load_data, tags_to_label, expand_tag_label, split
-# 어떤 import가 이쁜거지?
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -111,8 +110,8 @@ class SejongCollator(BaseCollator):
         pass
 
 class SejongDataset(BaseDataset):
-    def __init__(self, args, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index=-100, training=True):
-        super().__init__(args, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index)
+    def __init__(self, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index=-100, training=True):
+        super().__init__(filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index)
         self.training = training
 
         self.srcs, self.tgts, self.dec1_tgts, self.dec2_tgts = load_data(filepath, training, max_len // 2)
@@ -140,16 +139,9 @@ class SejongDataModule(BaseDataModule):
         self.valid_file_path = os.path.join(DIR, "valid.txt")
         self.test_file_path = os.path.join(DIR, "test.txt")
 
-
-        if self.lp_structure == "cmlm":
-            self.enc_tok = MyTokenizer(extra_special_symbols=['<len>'])
-        else:
-            self.enc_tok = MyTokenizer()
-        self.dec1_tok = MyTokenizer()
-        self.dec2_tok = MyTokenizer()
-
         log_path = os.path.join(DIR, "data_stat.json")
 
+        # data 로그를 남겨야 하나?
         if os.path.isfile(log_path):
             with open(log_path, 'r', encoding="utf-8-sig") as f:
                 log_dict = json.load(f)
@@ -162,22 +154,24 @@ class SejongDataModule(BaseDataModule):
             with open(log_path, 'w', encoding='utf-8-sig') as f:
                 json.dump(log_dict, f, ensure_ascii=False, indent=4)
 
-        self.enc_tok.read_vocab(log_dict["train"]["src_vocab"])
-        self.dec1_tok.read_vocab(log_dict["train"]["morph_vocab"])
-        self.dec2_tok.read_vocab(log_dict["train"]["tag_vocab"])
-
+        if isinstance(self.enc_tok, MyTokenizer):
+            self.enc_tok.read_vocab(log_dict["train"]["src_vocab"])
+        
+        if isinstance(self.dec1_tok, MyTokenizer):
+            self.dec1_tok.read_vocab(log_dict["train"]["morph_vocab"])
+            self.dec2_tok.read_vocab(log_dict["train"]["tag_vocab"])
+        
         self.datacollator = SejongCollator(self.lp_structure, 
                                             self.enc_tok, self.dec1_tok, self.dec2_tok,
                                             args.max_len, self.enc_tok.pad_token_id)
-        self.args = args
     
     def setup(self, stage):
         print(f"now stage:  {stage}")
-        self.train = SejongDataset(self.args, self.train_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=True)
-        self.valid = SejongDataset(self.args, self.valid_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=True)
+        self.train = SejongDataset(self.train_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=True)
+        self.valid = SejongDataset(self.valid_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=True)
         
     def inference_setup(self):
-        self.test = SejongDataset(self.args, self.test_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=False)
+        self.test = SejongDataset(self.test_file_path, self.enc_tok, self.dec1_tok, self.dec2_tok, self.max_len, training=False)
         
     def test_dataloader(self):
         collat_fn = TestCollator(self.lp_structure, 

@@ -9,7 +9,16 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import pytorch_lightning as pl
 
+from examples.utils.mytokenizer import MyTokenizer
+
 DIR = os.path.dirname(os.path.realpath(__file__))
+
+'''
+class TestCollator(BaseCollator):
+    pass
+    def __call__():
+        return list of batch, batchsize must be 1
+'''
 
 @dataclass
 class BaseCollator:
@@ -62,7 +71,7 @@ class BaseCollator:
         return labels
         
 class BaseDataset(Dataset):
-    def __init__(self, args, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index=-100):
+    def __init__(self, filepath, enc_tok, dec1_tok, dec2_tok, max_len, ignore_index=-100):
         self.filepath = filepath
 
         self.enc_tok = enc_tok
@@ -77,31 +86,39 @@ class BaseDataset(Dataset):
         self.dec1_tgts = None
         self.dec2_tgts = None
 
-        self.plm = args.enc_plm
-
     def __len__(self):
         return len(self.srcs)
     
     def __getitem__(self, index):
-        if self.plm:
-            enc_ids = self.enc_tok(self.srcs[index], add_special_tokens=False)
-            temp = []
-            for tokens in enc_ids['input_ids']:
-                if len(tokens) == 0:
-                    # print(self.srcs[index])
-                    temp.append(self.enc_tok.unk_token_id)
-                else:
-                    temp.append(tokens[0])
-            enc_ids = temp
-        else:
+        if isinstance(self.enc_tok, MyTokenizer):
             enc_ids = self.enc_tok.encode(self.srcs[index])
+        else:
+            enc_ids = self.enc_tok.encode(self.srcs[index], add_special_tokens=False)
 
+            # # In NER
+            # # there's an issue....
+            # # NER input = ['token', 'token', 'token'... ]
+
+            # temp = []
+            # for tokens in enc_ids['input_ids']:
+            #     if len(tokens) == 0:
+            #         # print(self.srcs[index])
+            #         temp.append(self.enc_tok.unk_token_id)
+            #     else:
+            #         temp.append(tokens[0])
+            # enc_ids = temp
+            
         if self.enc_tok.unk_token_id in enc_ids:
             pass
             # print(index)
         
-        dec1_tgt = self.dec1_tok.encode(self.dec1_tgts[index])
-        dec2_tgt = self.dec2_tok.encode(self.dec2_tgts[index])
+        if isinstance(self.dec1_tok, MyTokenizer):
+            dec1_tgt = self.dec1_tok.encode(self.dec1_tgts[index])
+            dec2_tgt = self.dec2_tok.encode(self.dec2_tgts[index])
+        else:
+            dec1_tgt = self.dec1_tok.encode(self.dec1_tgts[index], add_special_tokens=False)
+            dec2_tgt = self.dec2_tok.encode(self.dec2_tgts[index], add_special_tokens=False)
+
 
         return {'enc_ids': np.array(enc_ids, dtype=np.int_),
                 'dec1_tgt': np.array(dec1_tgt, dtype=np.int_),
@@ -119,7 +136,43 @@ class BaseDataModule(pl.LightningDataModule):
         self.max_len = args.max_len
         
         self.args = args
-    
+
+        if args.enc_tok == "custom":
+            if self.lp_structure == 'cmlm':
+                self.enc_tok = MyTokenizer(extra_special_symbols=['<len>'])
+            else:
+                self.enc_tok = MyTokenizer()
+        else:
+            from transformers import AutoTokenizer
+            self.enc_tok = AutoTokenizer.from_pretrained(args.enc_tok)
+
+            print(self.enc_tok.additional_special_tokens)
+            print(self.enc_tok.vocab_size)
+
+            assert 1==0
+            
+            self.enc_tok.additional_special_tokens = ["<mask>"]
+            
+        
+        if args.dec_tok == "custom":
+            self.dec1_tok = MyTokenizer()
+            self.dec2_tok = MyTokenizer()
+        else:
+            from transformers import AutoTokenizer
+            self.dec1_tok = AutoTokenizer.from_pretrained(args.dec_tok)
+            self.dec2_tok = AutoTokenizer.from_pretrained(args.dec_tok)
+
+            # self.dec1_tok.add_tokens(["<mask>"])
+            # self.dec1_tok.add_special_tokens(["<mask>"])
+            
+            # self.dec2_tok.add_tokens(["<mask>"])
+            # self.dec2_tok.add_special_tokens(["<mask>"])
+
+        '''
+        child: data_stat_logging
+            data_path, tokenizer
+        '''
+            
     def setup(self, stage):
         raise NotImplementedError("Implement")
         

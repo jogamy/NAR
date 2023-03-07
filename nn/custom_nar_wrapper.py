@@ -98,6 +98,10 @@ class NonAutoregressiveWrapper(nn.Module):
         self.pad_value = pad_value
         self.ignore_index = -100
 
+        print(self.mask_index)
+        print(self.pad_value)
+        assert 1==0
+
         self.net = net
         self.max_seq_len = net.max_seq_len
         self.train_logic = kwargs.pop('train_logic', None)

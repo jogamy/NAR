@@ -83,14 +83,6 @@ class ATISDataModule(BaseDataModule):
 
         assert self.lp_structure == None, f"{self.lp_structure}"
 
-        if args.enc_plm:
-            self.enc_tok = AutoTokenizer.from_pretrained(args.enc_plm)
-        else:
-            self.enc_tok = MyTokenizer()
-            # No LP. No len token
-        self.dec1_tok = MyTokenizer()
-        self.dec2_tok = MyTokenizer()
-
         log_dict = {
             'train' : data_stat(self.train_file_path),
             'valid' : data_stat(self.valid_file_path),
@@ -101,12 +93,12 @@ class ATISDataModule(BaseDataModule):
             json.dump(log_dict, f, ensure_ascii=False, indent=4)
         
         
-        if args.enc_plm:
-            pass
-        else:
+        if isinstance(self.enc_tok, MyTokenizer):
             self.enc_tok.read_vocab(log_dict["train"]["src_vocab"])
-        self.dec1_tok.read_vocab(log_dict["train"]["slt_vocab"])
-        self.dec2_tok.read_vocab(log_dict["train"]["int_vocab"])
+        
+        if isinstance(self.dec1_tok, MyTokenizer):
+            self.dec1_tok.read_vocab(log_dict["train"]["morph_vocab"])
+            self.dec2_tok.read_vocab(log_dict["train"]["tag_vocab"])
 
         self.datacollator = ATISCollator(self.lp_structure, 
                                             self.enc_tok, self.dec1_tok, self.dec2_tok,
