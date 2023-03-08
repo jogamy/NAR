@@ -98,10 +98,6 @@ class NonAutoregressiveWrapper(nn.Module):
         self.pad_value = pad_value
         self.ignore_index = -100
 
-        print(self.mask_index)
-        print(self.pad_value)
-        assert 1==0
-
         self.net = net
         self.max_seq_len = net.max_seq_len
         self.train_logic = kwargs.pop('train_logic', None)
@@ -140,6 +136,7 @@ class NonAutoregressiveWrapper(nn.Module):
             start_tokens[start_tokens==1] = self.mask_index
 
             if self.train_logic == "eojeol":
+                assert 1==0
                 start_tokens[start_tokens==100] = self.space_id
         
             
@@ -207,6 +204,7 @@ class NonAutoregressiveWrapper(nn.Module):
         kwargs = {context, context_mask}
         '''
         if self.train_logic == 'ctc':
+            return None
             inp = kwargs['context']
             '''
             need what?

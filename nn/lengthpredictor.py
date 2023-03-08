@@ -37,7 +37,7 @@ structure:
 class LengthPredictor(nn.Module):
     def __init__(self,
         dim=512,
-        structure="len_token",
+        structure="labeling",
         max_length=200,
         **kwargs
     ):
@@ -158,17 +158,19 @@ class LengthPredictor(nn.Module):
 
         return lp_out
         
-        
     def forward(self, length_labels, enc_output, **kwargs):
-        if self.length_predictor == None:
+        if self.structure == 'labeling':
             return None
-    
-        if self.structure == "cmlm":
+        elif self.structure == "cmlm":
             logit = enc_output[:,0,:]
+        elif self.structure == 'ctc':
+            
+            assert 1==0
         else:
             logit = enc_output
         
         length_logit = self.length_predictor(logit)
+
         '''
         cmlm:             b, max_length + 1
             label :       b
@@ -178,7 +180,7 @@ class LengthPredictor(nn.Module):
         흠.. ctc의 가중치는 여기서 학습이 힘들다
         '''
         
-        if self.structure != "cmlm":    
+        if self.structure != "cmlm":
             length_logit = length_logit.transpose(1,2)
     
         length_loss = F.cross_entropy(
