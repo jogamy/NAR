@@ -13,12 +13,11 @@ from examples.utils.mytokenizer import MyTokenizer
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 
-'''
-class TestCollator(BaseCollator):
-    pass
-    def __call__():
-        return list of batch, batchsize must be 1
-'''
+'''class TestCollator(BaseCollator):
+    def __call__(self, features):
+
+        return list of batch, batchsize must be 1'''
+
 
 @dataclass
 class BaseCollator:

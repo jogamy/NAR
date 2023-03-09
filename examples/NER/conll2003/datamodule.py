@@ -91,8 +91,8 @@ class CONLL2003DataModule(BaseDataModule):
             self.enc_tok.read_vocab(log_dict["train"]["src_vocab"])
         
         if isinstance(self.dec1_tok, MyTokenizer):
-            self.dec1_tok.read_vocab(log_dict["train"]["morph_vocab"])
-            self.dec2_tok.read_vocab(log_dict["train"]["tag_vocab"])
+            self.dec1_tok.read_vocab(log_dict["train"]["POS_vocab"])
+            self.dec2_tok.read_vocab(log_dict["train"]["NER_vocab"])
 
         self.datacollator = CONLL2003Collator(self.lp_structure, 
                                             self.enc_tok, self.dec1_tok, self.dec2_tok,

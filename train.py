@@ -290,6 +290,8 @@ def avail_check(args):
     # KMA가 아니면 cmlm 이용 금지
     if args.task != "KMA":
         assert args.lp_structure != 'cmlm', f"{args.lp_structure}"
+    if args.task == "NER":
+        assert args.lp_structure == "labeling", f"{args.lp_structure}"
 
     
 if __name__=="__main__":
